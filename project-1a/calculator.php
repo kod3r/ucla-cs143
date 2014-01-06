@@ -44,29 +44,79 @@ function is_valid_expression( $expr ) {
 }
 
 function infix_to_postfix ( $infix ) {
-	$postfix_expr = '';
+	$infix = str_replace( ' ', '', $infix );
+
+	$postfix = array();
 	$stack = array();
 	$operators = array( '/', '*', '+', '-' );
+
+	// stores the current operand value, e.g. 5
+	// NULL distinguishes between uninitialized and the literal 0 number
+	$current_operand = NULL;
+
+	$unary_min = false;
+	$is_fractional_part = false; // have we passed a decimal ('.') character yet?
+	$next_decimal_power = 0; // if $current_operand is 5.03, $next_decimal_power should equal (-)3
+
 	for( $i = 0; $i < strlen( $infix ); $i++ ) {
 		$char = $infix[$i];
 
+		// Process natural numbers one character at a time
+		if ( is_numeric( $char ) ) {
+			if ( $is_fractional_part ) {
+				$current_operand += pow( 10, -$next_decimal_power ) * $char;
+				$next_decimal_power += 1;
+			} else {
+				$current_operand = ($current_operand * 10) + $char;
+			}
+
+			continue;
+		}
+
+		// Hit a decimal character, following numbers are fractional part
+		if ( '.' == $char ) {
+			$is_fractional_part = true;
+			$next_decimal_power = 0;
+			continue;
+		}
+
+		// Found an operator
 		if ( in_array( $char, $operators ) ) {
-			if ( 0 == sizeof ( $stack ) ) {
-				$stack[] = $char;
+			// Check for unary minus and togle the flag
+			// Note consecutive '-' operators are prefectly valid and anything after
+			// the first should be treated as a unary minus
+			if ( '-' == $char && ( 0 == $i || in_array( $infix[$i - 1], $operators ) ) ) {
+				$unary_min = ! $unary_min;
+				continue;
 			}
-			else {
-				while ( sizeof( $stack ) > 0 && higher_precedence( $char, $stack[sizeof( $stack ) - 1] ) ) {
-					$postfix_expr .= array_pop( $stack );
-				}
-				$stack[] = $char;
+
+			// Push the operand on the evaluation stack
+			$postfix[] = $current_operand * ($unary_min ? -1 : 1);
+
+			// Reset operand flags
+			$current_operand = NULL;
+			$unary_min = false;
+			$is_fractional_part = false;
+			$next_decimal_power = 0;
+
+			while ( sizeof( $stack ) > 0 && higher_precedence( $stack[sizeof( $stack ) - 1], $char ) ) {
+				$postfix[] = array_pop( $stack );
 			}
-		} else if ( is_numeric( $char ) || '.' == $char ) {
-			// If it isn't a space, it must be a number
-			$postfix_expr .= $char;
+
+			$stack[] = $char;
 		}
 	}
-	$postfix_expr .= implode( $stack, '' );
-	return $postfix_expr;
+
+	// If we hit the end of the string push the last operand
+	if ( NULL !== $current_operand ) {
+		$postfix[] = $current_operand * ($unary_min ? -1 : 1);
+	}
+
+	while ( sizeof( $stack ) > 0 ) {
+		$postfix[] = array_pop( $stack );
+	}
+
+	return $postfix;
 }
 
 function evaluate_postfix_expression( $expr ) {
