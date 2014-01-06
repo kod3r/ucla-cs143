@@ -191,7 +191,7 @@ $expression = empty( $_GET['expression'] ) ? '' : $_GET['expression'];
 <form action="" method="get">
 	<label for="expression">Your Calculator Expression:</label>
 	<input type="text" name="expression">
-	<input type="submit" name="submit" value="Calculator">
+	<input type="submit" value="Calculate">
 </form>
 <p>Some rules:
 	<ul>
