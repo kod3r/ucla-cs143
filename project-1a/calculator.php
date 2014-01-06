@@ -20,12 +20,10 @@ error_reporting( E_ALL );
 * but we separate them out for clarity.
 */
 function is_valid_expression( $expr ) {
-	$acceptable_chars = '/^[0-9\.\-\+\/\* ]+$/';
+	$acceptable_chars = '/^[0-9\.\-\+\/\*]+$/';
 	if ( ! preg_match( $acceptable_chars, $expr ) ) {
 		return false;
 	}
-
-	$expr = str_replace( ' ', '', $expr );
 
 	// Permutations of consecutive +, /, or * are invalid, as is a - followed by another operator
 	// An operator followed by a - is valid as it becomes a unary minus
