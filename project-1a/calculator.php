@@ -1,4 +1,6 @@
 <?php
+ini_set( 'display_errors', 1 );
+error_reporting( E_ALL );
 /**
  * Simple "Calculator"
  * For UCLA CS143, Winter 2014.
@@ -12,6 +14,94 @@
  * The project requires that a single file only be submitted, so this
  * is a little bit ugly.
  */
+
+/**
+* "Utility" functions. These are not actually used more than once,
+* but we separate them out for clarity.
+*/
+function is_valid_expression( $expr ) {
+	$acceptable_chars = '/^[0-9\.\-\+\/\* ]+$/';
+	return preg_match( $acceptable_chars, $expr );
+
+	// @todo ensure that multiple operators aren't combined (except when a minus
+	// sign might be used to indicate negative)
+}
+
+function infix_to_postfix ( $infix ) {
+	$postfix_expr = '';
+	$stack = array();
+	$operators = array( '/', '*', '+', '-' );
+	for( $i = 0; $i < strlen( $infix ); $i++ ) {
+		$char = $infix[$i];
+
+		if ( in_array( $char, $operators ) ) {
+			if ( 0 == sizeof ( $stack ) ) {
+				$stack[] = $char;
+			}
+			else {
+				while ( sizeof( $stack ) > 0 && higher_precedence( $char, $stack[sizeof( $stack ) - 1] ) ) {
+					$postfix_expr .= array_pop( $stack );
+				}
+				$stack[] = $char;
+			}
+		} else if ( is_numeric( $char ) || '.' == $char ) {
+			// If it isn't a space, it must be a number
+			$postfix_expr .= $char;
+		}
+	}
+	$postfix_expr .= implode( $stack, '' );
+	return $postfix_expr;
+}
+
+function evaluate_postfix_expression( $expr ) {
+	$stack = array();
+	$operators = array( '/', '*', '+', '-' );
+	for ( $i = 0; $i < sizeof( $expr ); $i++ ) {
+		$char = $expr[$i];
+		if ( ! in_array( $char, $operators ) ) {
+			$stack[] = $char;
+		} else {
+			switch ( $char ) {
+				case '+':
+					$result = $stack[sizeof( $stack )] + $stack[sizeof( $stack ) - 1];
+					break;
+				case '-':
+					$result = $stack[sizeof( $stack )] - $stack[sizeof( $stack ) - 1];
+					break;
+				case '/':
+					$result = $stack[sizeof( $stack )] / $stack[sizeof( $stack ) - 1];
+					break;
+				case '*':
+					$result = $stack[sizeof( $stack )] * $stack[sizeof( $stack ) - 1];
+					break;
+			}
+			$stack = array_slice( $stack, 0, sizeof( $stack ) - 2 );
+			$stack[] = $result;
+		}
+	}
+
+	return $stack[0];
+}
+
+/**
+ * Determine if a is an operand of higher or equal precedence than b
+ */
+function higher_precedence( $a, $b ) {
+	switch ( $b ) {
+		case '+':
+		case '-':
+			return false;
+			break;
+		// There can never be a higher precedence operator
+		case '*':
+		case '/':
+			if ( $a == '+' || $a == '-')
+				return true;
+			else
+				return false;
+			break;
+	}
+}
 
 /**
  * Some common HTML templating...
@@ -51,7 +141,13 @@ $expression = empty( $_GET['expression'] ) ? '' : $_GET['expression'];
  * simply display it.
  */
 if ( '' != $expression ) {
+	echo '<h2>Results</h2>';
 
+	if ( ! is_valid_expression( $expression ) ) {
+		echo '<p><strong>Sorry, your expression is invalid!</strong> Please try again.</p>';
+	} else {
+		echo 'Your result is: ' . evaluate_postfix_expression( infix_to_postfix( $expression ) );
+	}
 }
 
 /** 
