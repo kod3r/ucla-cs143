@@ -41,6 +41,21 @@ foreach ( $tests as $test ) {
 	}
 }
 
-// @todo add invalid test cases
+// Now, make sure desired failures fail
+$failures = array(
+	'one/zero', // written numbers
+);
+
+foreach ( $failures as $failure ) {
+	print "Testing $failure ... ";
+
+	if ( ! is_valid_expression( $failure ) ) {
+		$pass++;
+		print "Detected as invalid. Passed!\n";
+	} else {
+		$fail++;
+		print "Detected as valid. FAIL\n";
+	}
+}
 
 print "Tests complete! $fail failures | $pass successes\n";
