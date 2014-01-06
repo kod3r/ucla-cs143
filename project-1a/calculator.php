@@ -100,21 +100,21 @@ function evaluate_postfix_expression( $expr ) {
 }
 
 /**
- * Determine if a is an operand of higher or equal precedence than b
+ * Determine if a is an operand of higher precedence than b
  */
 function higher_precedence( $a, $b ) {
 	switch ( $b ) {
 		case '+':
 		case '-':
-			return false;
+			return true;
 			break;
 		// There can never be a higher precedence operator
 		case '*':
 		case '/':
 			if ( $a == '+' || $a == '-')
-				return true;
-			else
 				return false;
+			else
+				return true;
 			break;
 	}
 }
