@@ -124,25 +124,29 @@ function evaluate_postfix_expression( $expr ) {
 	$operators = array( '/', '*', '+', '-' );
 	for ( $i = 0; $i < sizeof( $expr ); $i++ ) {
 		$char = $expr[$i];
-		if ( ! in_array( $char, $operators ) ) {
+		if ( ! in_array( (string)$char, $operators ) ) {
 			$stack[] = $char;
 		} else {
+			$oper2 = (float)array_pop( $stack );
+			$oper1 = (float)array_pop( $stack );
+
 			switch ( $char ) {
 				case '+':
-					$result = $stack[sizeof( $stack )] + $stack[sizeof( $stack ) - 1];
+					$stack[] = $oper1 + $oper2;
 					break;
 				case '-':
-					$result = $stack[sizeof( $stack )] - $stack[sizeof( $stack ) - 1];
+					$stack[] = $oper1 - $oper2;
 					break;
 				case '/':
-					$result = $stack[sizeof( $stack )] / $stack[sizeof( $stack ) - 1];
+					if ( 0 == $oper2 )
+						return 'Error: Divide by zero exception.';
+
+					$stack[] = $oper1 / $oper2;
 					break;
 				case '*':
-					$result = $stack[sizeof( $stack )] * $stack[sizeof( $stack ) - 1];
+					$stack[] = $oper1 * $oper2;
 					break;
 			}
-			$stack = array_slice( $stack, 0, sizeof( $stack ) - 2 );
-			$stack[] = $result;
 		}
 	}
 
@@ -212,7 +216,14 @@ if ( '' != $expression ) {
 	if ( ! is_valid_expression( $expression ) ) {
 		echo '<p><strong>Sorry, your expression is invalid!</strong> Please try again.</p>';
 	} else {
-		echo 'Your result is: ' . evaluate_postfix_expression( infix_to_postfix( $expression ) );
+		$result = evaluate_postfix_expression( infix_to_postfix( $expression ) );
+
+		if ( is_numeric( $result ) )
+			$result = 'Your result is: ' . $result;
+		else if ( ! is_string( $result ) )
+			$result = "An error occured.";
+
+		echo $result;
 	}
 }
 
