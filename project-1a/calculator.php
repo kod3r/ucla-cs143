@@ -21,10 +21,26 @@ error_reporting( E_ALL );
 */
 function is_valid_expression( $expr ) {
 	$acceptable_chars = '/^[0-9\.\-\+\/\* ]+$/';
-	return preg_match( $acceptable_chars, $expr );
+	if ( ! preg_match( $acceptable_chars, $expr ) ) {
+		return false;
+	}
 
-	// @todo ensure that multiple operators aren't combined (except when a minus
-	// sign might be used to indicate negative)
+	$expr = str_replace( ' ', '', $expr );
+
+	// Permutations of consecutive +, /, or * are invalid, as is a - followed by another operator
+	// An operator followed by a - is valid as it becomes a unary minus
+	if ( preg_match( '/[\+\/\*]{2,}/', $expr ) || preg_match( '/\-[\+\/\*]/', $expr ) ) {
+		return false;
+	}
+
+	// A decimal without leading or trailing numeric characters is illegal
+	// Two decimal points can only be valid if an operator exists between them
+	// A digit must appear before or after a decimal point
+	if ( preg_match( '/[^0-9]\.[^0-9]/', $expr ) || preg_match( '/\.[^0-9]/', $expr ) || preg_match( '/\.[^\+\-\/\*]+\./', $expr ) ) {
+		return false;
+	}
+
+	return true;
 }
 
 function infix_to_postfix ( $infix ) {
