@@ -54,7 +54,7 @@ function infix_to_postfix ( $infix ) {
 
 	$unary_min = false;
 	$is_fractional_part = false; // have we passed a decimal ('.') character yet?
-	$next_decimal_power = 0; // if $current_operand is 5.03, $next_decimal_power should equal (-)3
+	$next_decimal_power = 1; // if $current_operand is 5.03, $next_decimal_power should equal (-)3
 
 	for( $i = 0; $i < strlen( $infix ); $i++ ) {
 		$char = $infix[$i];
@@ -74,7 +74,7 @@ function infix_to_postfix ( $infix ) {
 		// Hit a decimal character, following numbers are fractional part
 		if ( '.' == $char ) {
 			$is_fractional_part = true;
-			$next_decimal_power = 0;
+			$next_decimal_power = 1;
 			continue;
 		}
 
