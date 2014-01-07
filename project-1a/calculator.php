@@ -38,6 +38,12 @@ function is_valid_expression( $expr ) {
 		return false;
 	}
 
+	// An operator must have a number (integer or decimal) on each side with
+	// an optional, unlimited number of unary minus operators in front of the number
+	if ( preg_match( '/^[\+\/\*]/', $expr ) || preg_match( '/[\+\-\/\*]-*+(?![0-9]|\.)/', $expr ) ) {
+		return false;
+	}
+
 	return true;
 }
 
