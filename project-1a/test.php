@@ -32,7 +32,10 @@ foreach ( $tests as $test ) {
 	print "Testing $test = $expect ... ";
 	$result = evaluate_postfix_expression( infix_to_postfix( $test ) );
 
-	if ( $result == $expect ) {
+	if ( !is_valid_expression( $test ) ) {
+		$fail++;
+		print "Marked as invalid expression - FAIL\n";
+	} else if ( $result == $expect ) {
 		$pass++;
 		print "Passed!\n";
 	} else {
@@ -44,6 +47,26 @@ foreach ( $tests as $test ) {
 // Now, make sure desired failures fail
 $failures = array(
 	'one/zero', // written numbers
+	'1+3+', // invalid number of operands
+	'+3+7', // invalid number of operands
+	'1.04.2 + 7', // invalid decimal
+	'.+17', // decimal with no digits
+
+	'1**3', // consecutive operators
+	'1*/3', // consecutive operators
+	'1*+3', // consecutive operators
+
+	'1/*3', // consecutive operators
+	'1//3', // consecutive operators
+	'1/+3', // consecutive operators
+
+	'1+*3', // consecutive operators
+	'1+/3', // consecutive operators
+	'1++3', // consecutive operators
+
+	'1-*3', // consecutive operators
+	'1-/3', // consecutive operators
+	'1-+3', // consecutive operators
 );
 
 foreach ( $failures as $failure ) {
