@@ -137,7 +137,7 @@ function evaluate_postfix_expression( $expr ) {
 					break;
 				case '/':
 					if ( 0 == $oper2 )
-						return 'Error: Divide by zero exception.';
+						return NULL;
 
 					$stack[] = $oper1 / $oper2;
 					break;
@@ -212,16 +212,9 @@ if ( '' != $expression ) {
 	echo '<h2>Results</h2>';
 
 	if ( ! is_valid_expression( $expression ) ) {
-		echo '<p><strong>Sorry, your expression is invalid!</strong> Please try again.</p>';
+		echo "Invalid input expression $expression.";
 	} else {
-		$result = evaluate_postfix_expression( infix_to_postfix( $expression ) );
-
-		if ( is_numeric( $result ) )
-			$result = 'Your result is: ' . $result;
-		else if ( ! is_string( $result ) )
-			$result = "An error occured.";
-
-		echo $result;
+		echo "$expression = " . evaluate_postfix_expression( infix_to_postfix( $expression ) );
 	}
 }
 
