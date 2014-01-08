@@ -188,7 +188,7 @@ function higher_precedence( $a, $b ) {
 	<body>
 <?php
 $expression = empty( $_GET['expression'] ) ? '' : $_GET['expression'];
-
+$expression = preg_replace( '/\s/', '', $expression );
 
 /**
  * Display the "calculator" form. We do this on every page.
