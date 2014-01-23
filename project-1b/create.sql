@@ -4,7 +4,8 @@ CREATE TABLE `Movie` (
 	`year` INT,
 	`rating` VARCHAR(10),
 	`company` VARCHAR(50),
-	PRIMARY KEY(`id`)
+	PRIMARY KEY(`id`),
+	CHECK(LENGTH(`title`) > 0)
 ) ENGINE = INNODB;
 
 CREATE TABLE `Actor` (
@@ -14,7 +15,9 @@ CREATE TABLE `Actor` (
 	`sex` VARCHAR(6),
 	`dob` DATE,
 	`dod` DATE,
-	PRIMARY KEY(`id`)
+	PRIMARY KEY(`id`),
+	CHECK((`dod` IS NOT NULL and `dob` IS NOT NULL and `dob` < `dod`) or `dod` IS NULL),
+	CHECK(`last` IS NOT NULL or `first` IS NOT NULL)
 ) ENGINE = INNODB;
 
 CREATE TABLE `Director` (
@@ -23,7 +26,9 @@ CREATE TABLE `Director` (
 	`first` VARCHAR(20),
 	`dob` DATE,
 	`dod` DATE,
-	PRIMARY KEY(`id`)
+	PRIMARY KEY(`id`),
+	CHECK((`dod` IS NOT NULL and `dob` IS NOT NULL and `dob` < `dod`) or `dod` IS NULL),
+	CHECK(`last` IS NOT NULL or `first` IS NOT NULL)
 ) ENGINE = INNODB;
 
 CREATE TABLE `MovieGenre` (
@@ -57,7 +62,8 @@ CREATE TABLE `Review` (
 	`rating` INT NOT NULL,
 	`comment` VARCHAR(500),
 	UNIQUE(`name`, `mid`),
-	FOREIGN KEY(`mid`) references Movie(`id`)
+	FOREIGN KEY(`mid`) references Movie(`id`),
+	CHECK(`rating` >= 0 and `rating` <= 5)
 ) ENGINE = INNODB;
 
 CREATE TABLE `MaxPersonID` (
