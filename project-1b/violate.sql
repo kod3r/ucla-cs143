@@ -70,6 +70,7 @@ INSERT INTO MovieGenre(mid, genre)
 VALUES (1, NULL)
 
 -- mid must reference a valid row in the Movie table
+-- ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`CS143/MovieGenre`, CONSTRAINT `MovieGenre_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `Movie` (`id`))
 INSERT INTO MovieGenre(mid, genre)
 VALUES (0, 'Comedy')
 
@@ -92,10 +93,12 @@ INSERT INTO MovieDirector(mid, did)
 VALUES (1, 1), (1, 1)
 
 -- mid must reference a valid row in the Movie table
+-- ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`CS143/MovieDirector`, CONSTRAINT `MovieDirector_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `Movie` (`id`))
 INSERT INTO MovieDirector(mid, did)
 VALUES (0, 1)
 
 -- did must reference a valid row in the Director table
+-- ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`CS143/MovieDirector`, CONSTRAINT `MovieDirector_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `Movie` (`id`))
 INSERT INTO MovieDirector(mid, did)
 VALUES (1, 0)
 
@@ -118,10 +121,12 @@ INSERT INTO MovieActor(mid, aid, role)
 VALUES (1, 1, 'Lead Role'), (1, 1, 'Lead Role')
 
 -- mid must reference a valid row in the Movie table
+-- ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`CS143/MovieActor`, CONSTRAINT `MovieActor_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `Movie` (`id`))
 INSERT INTO MovieActor(mid, aid, role)
 VALUES (0, 1, 'Lead Role')
 
 -- did must reference a valid row in the Actor table
+-- ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`CS143/MovieActor`, CONSTRAINT `MovieActor_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `Movie` (`id`))
 INSERT INTO MovieActor(mid, aid, role)
 VALUES (1, 0, 'Lead Role')
 
@@ -148,6 +153,7 @@ INSERT INTO Review(name, time, mid, rating, comment)
 VALUES ('Bob Smith', 1390791191, 1, 4, 'Great movie!'), ('Bob Smith', 1390791191, 1, 1, 'Terrible movie!')
 
 -- mid must reference a valid row in the Movie table
+-- ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`CS143/Review`, CONSTRAINT `Review_ibfk_1` FOREIGN KEY (`mid`) REFERENCES `Movie` (`id`))
 INSERT INTO Review(name, time, mid, rating, comment)
 VALUES ('Bob Smith', 1390791191, 0, 4, 'Great movie!')
 
