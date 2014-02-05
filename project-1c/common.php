@@ -1,6 +1,7 @@
 <?php
 
 define(PERSON_VIEW, 'person-view.php');
+define(MOVIE_VIEW, 'movie-view.php');
 
 /**
  * Instantiates a PDO object to the db and returns a handle
@@ -47,10 +48,11 @@ function error_404() {
  * @param $id_col - name of the primary key column name for this object
  * @param $link_col - name of the column to hyperlink
  * @param $table_header - optional header for the top of the table
+ * @param $show_headers - display a row of column names
  * @param $skip_col_names - an array of colums to AVOID rendering in HTML
  * @return HTML string
  */
-function render_table($objects, $link_url, $id_col, $link_col, $table_header = '', $skip_col_names = array()) {
+function render_table($objects, $link_url, $id_col, $link_col, $table_header = '', $show_headers = true, $skip_col_names = array()) {
 
 	if ( empty( $objects ) ) {
 		return '';
@@ -66,11 +68,13 @@ function render_table($objects, $link_url, $id_col, $link_col, $table_header = '
 		$html .= '<tr><th colspan="' . sizeof( $display_col_names ) . '">' . $table_header . '</th></tr>';
 	}
 
-	$html .= '<tr>';
-	foreach ( $display_col_names as $col ) {
-		$html .= "<td><strong>$col</strong></td>";
+	if ( $show_headers ) {
+		$html .= '<tr>';
+		foreach ( $display_col_names as $col ) {
+			$html .= "<td><strong>$col</strong></td>";
+		}
+		$html .= '</tr>';
 	}
-	$html .= '</tr>';
 
 	foreach ( $objects as $o ) {
 		$html .= '<tr>';
