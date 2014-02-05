@@ -19,7 +19,7 @@ if ( empty( $actor ) ) {
 	error_404();
 }
 
-$movies_sql = 'SELECT title as Title, role as Role, year as Year, rating as `Rating`, company as `Producing Company`
+$movies_sql = 'SELECT Movie.id as id, title as Title, role as Role, year as Year, rating as `Rating`, company as `Producing Company`
 	FROM Movie
 	JOIN MovieActor ON MovieActor.mid = Movie.id
 	JOIN Actor ON MovieActor.aid = Actor.id
@@ -30,30 +30,6 @@ $movies_sql = 'SELECT title as Title, role as Role, year as Year, rating as `Rat
 $sth = $dbh->prepare( $movies_sql );
 $sth->execute( array( ':id' => $id ) );
 $movies = $sth->fetchAll( PDO::FETCH_ASSOC );
-
-$movies_html = '';
-
-// @TODO: hyperlink movies to their respective page
-if ( !empty( $movies ) ) {
-	$col_names = array_keys( $movies[0] );
-	$movies_html = '<table border="1"><tr><th colspan="' . sizeof( $col_names ) . '">Filmography</th></tr>';
-
-	$movies_html .= '<tr>';
-	foreach ( $col_names as $col ) {
-		$movies_html .= "<td><strong>$col</strong></td>";
-	}
-	$movies_html .= '</tr>';
-
-	foreach ( $movies as $m ) {
-		$movies_html .= '<tr>';
-		foreach ( $m as $col ) {
-			$movies_html .= "<td>$col</td>";
-		}
-		$movies_html .= '</tr>';
-	}
-
-	$movies_html .= '</table>';
-}
 
 ?>
 <!DOCTYPE html>
@@ -71,7 +47,7 @@ if ( !empty( $movies ) ) {
 			<?php echo $actor['dod'] ? 'Died: ' . date( 'F j, Y', strtotime( $actor['dod'] ) ) . '<br>' : ''; ?>
 		</p>
 
-		<?php echo $movies_html; ?>
+		<?php echo render_table( $movies, MOVIE_VIEW, 'id', 'Title', 'Filmography', array() ); ?>
 	</body>
 </html>
 
