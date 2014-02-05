@@ -1,5 +1,7 @@
 <?php
 
+define(ACTOR_VIEW, 'actor-view.php');
+
 function get_db_handle() {
 	global $db_handle;
 
