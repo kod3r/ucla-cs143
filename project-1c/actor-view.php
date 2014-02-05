@@ -19,17 +19,28 @@ if ( empty( $actor ) ) {
 	error_404();
 }
 
-$movies_sql = 'SELECT Movie.id as id, title as Title, role as Role, year as Year, rating as `Rating`, company as `Producing Company`
+$acted = 'SELECT Movie.id as id, title as Title, role as Role, year as Year, rating as `Rating`, company as `Producing Company`
 	FROM Movie
 	JOIN MovieActor ON MovieActor.mid = Movie.id
-	JOIN Actor ON MovieActor.aid = Actor.id
-	WHERE Actor.id = :id
+	WHERE MovieActor.aid = :id
 	ORDER BY year, title
 ';
 
-$sth = $dbh->prepare( $movies_sql );
+$sth = $dbh->prepare( $acted );
 $sth->execute( array( ':id' => $id ) );
-$movies = $sth->fetchAll( PDO::FETCH_ASSOC );
+$acted = $sth->fetchAll( PDO::FETCH_ASSOC );
+
+$directed_sql = 'SELECT Movie.id as id, title as Title, year as Year, rating as `Rating`, company as `Producing Company`
+	FROM Movie
+	JOIN MovieDirector ON MovieDirector.mid = Movie.id
+	JOIN Director ON MovieDirector.did = Director.id
+	WHERE Director.id = :id
+	ORDER BY year, title
+';
+
+$sth = $dbh->prepare( $directed_sql );
+$sth->execute( array( ':id' => $id ) );
+$directed = $sth->fetchAll( PDO::FETCH_ASSOC );
 
 ?>
 <!DOCTYPE html>
@@ -39,7 +50,7 @@ $movies = $sth->fetchAll( PDO::FETCH_ASSOC );
 	</head>
 	<body>
 		<p>
-			<?php echo $actor['first'] . ' ' . $actor['last']; ?>
+			<strong><?php echo $actor['first'] . ' ' . $actor['last']; ?></strong>
 			<br>
 			<?php echo $actor['sex']; ?>
 			<br>
@@ -47,7 +58,8 @@ $movies = $sth->fetchAll( PDO::FETCH_ASSOC );
 			<?php echo $actor['dod'] ? 'Died: ' . date( 'F j, Y', strtotime( $actor['dod'] ) ) . '<br>' : ''; ?>
 		</p>
 
-		<?php echo render_table( $movies, MOVIE_VIEW, 'id', 'Title', 'Filmography', array() ); ?>
+		<?php echo render_table( $directed, MOVIE_VIEW, 'id', 'Title', 'Films Directed' ) . '<br>'; ?>
+		<?php echo render_table( $acted, MOVIE_VIEW, 'id', 'Title', 'Filmography' ); ?>
 	</body>
 </html>
 

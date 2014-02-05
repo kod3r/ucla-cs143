@@ -1,7 +1,6 @@
 <?php
 
 define(ACTOR_VIEW, 'actor-view.php');
-define(ACTOR_VIEW, 'director-view.php');
 
 /**
  * Instantiates a PDO object to the db and returns a handle
