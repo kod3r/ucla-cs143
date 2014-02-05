@@ -25,7 +25,18 @@ function get_db_handle() {
  */
 function error_404() {
 	header( 'HTTP/1.1 404 Not Found' );
-	header( 'Location: 404.html');
+?>
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>404 - Oops!</title>
+	</head>
+	<body>
+		<h2>404!</h2>
+		<p>That page does not exist!</p>
+	</body>
+</html>
+<?php
 	die;
 }
 
