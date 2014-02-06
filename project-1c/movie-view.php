@@ -27,6 +27,22 @@ $director_sql ='SELECT Director.id, CONCAT(Director.first, " ", Director.last) a
 	WHERE MovieDirector.mid = :id
 ';
 
+$genre_sql = 'SELECT DISTINCT(genre)
+	FROM MovieGenre
+	WHERE mid = :id
+';
+
+$avg_rating_sql = 'SELECT AVG(rating)
+	FROM Review
+	WHERE mid = :id
+';
+
+$comments_sql = 'SELECT name, CONCAT(rating, "/5") as rating, comment
+	FROM Review
+	WHERE mid = :id
+	ORDER BY time DESC
+';
+
 $sth = $dbh->prepare( $cast_sql );
 $sth->execute( array( ':id' => $id ) );
 $cast = $sth->fetchAll( PDO::FETCH_ASSOC );
@@ -34,6 +50,30 @@ $cast = $sth->fetchAll( PDO::FETCH_ASSOC );
 $sth = $dbh->prepare( $director_sql );
 $sth->execute( array( ':id' => $id ) );
 $directors = $sth->fetchAll( PDO::FETCH_ASSOC );
+
+$sth = $dbh->prepare( $genre_sql );
+$sth->execute( array( ':id' => $id ) );
+$genres = $sth->fetchAll( PDO::FETCH_COLUMN, 0 );
+
+$sth = $dbh->prepare( $avg_rating_sql );
+$sth->execute( array( ':id' => $id ) );
+$avg_rating = $sth->fetchAll( PDO::FETCH_COLUMN, 0 );
+$avg_rating = $avg_rating[0] ? (int)$avg_rating[0] : '--';
+
+$sth = $dbh->prepare( $comments_sql );
+$sth->execute( array( ':id' => $id ) );
+$comments = $sth->fetchAll( PDO::FETCH_ASSOC );
+
+if ( sizeof( $comments ) > 0 ) {
+	$comments_html = '';
+	foreach ( $comments as $c ) {
+		$comments_html .= '<div style="border: 4px double gray;"><p style="margin: 5px">';
+		$comments_html .= 'Name: '   . $c['name']   . '<br>';
+		$comments_html .= 'Rating: ' . $c['rating'] . '<br>';
+		$comments_html .= $c['comment'];
+		$comments_html .= '</p></div>';
+	}
+}
 
 ?>
 <!DOCTYPE html>
@@ -48,10 +88,22 @@ $directors = $sth->fetchAll( PDO::FETCH_ASSOC );
 			Rating: <?php echo $movie['rating']; ?>
 			<br>
 			Produced by: <?php echo $movie['company']; ?>
+			<br>
+			Tagged genres: <?php echo implode( ', ', $genres ); ?>
+			<br>
+			Average Rating: <?php echo $avg_rating; ?>/5
 		</p>
 
 		<?php echo render_table( $directors, PERSON_VIEW, 'id', 'Name', 'Directed By', false ); ?>
 		<br>
 		<?php echo render_table( $cast, PERSON_VIEW, 'id', 'Name', 'Film Cast' ); ?>
+		<br>
+		<div style="width: 45%;">
+			<strong>User reviews</strong>
+			<br>
+			<!-- @TODO: link to comment page -->
+			<a href="#" style="margin-right: 5px;">Add review</a>
+			<?php echo $comments_html; ?>
+		</div>
 	</body>
 </html>
