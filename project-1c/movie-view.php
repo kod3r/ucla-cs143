@@ -57,8 +57,8 @@ $genres = $sth->fetchAll( PDO::FETCH_COLUMN, 0 );
 
 $sth = $dbh->prepare( $avg_rating_sql );
 $sth->execute( array( ':id' => $id ) );
-$avg_rating = $sth->fetchAll( PDO::FETCH_COLUMN, 0 );
-$avg_rating = $avg_rating[0] ? (int)$avg_rating[0] : '--';
+$avg_rating = $sth->fetch( PDO::FETCH_COLUMN, 0 );
+$avg_rating = $avg_rating ? number_format( (float)$avg_rating, 1) : '--';
 
 $sth = $dbh->prepare( $comments_sql );
 $sth->execute( array( ':id' => $id ) );
@@ -101,8 +101,7 @@ if ( sizeof( $comments ) > 0 ) {
 		<div style="width: 45%;">
 			<strong>User reviews</strong>
 			<br>
-			<!-- @TODO: link to comment page -->
-			<a href="#" style="margin-right: 5px;">Add review</a>
+			<?php echo hyperlink( REVIEW_FORM, $id, 'Add review'); ?>
 			<?php echo $comments_html; ?>
 		</div>
 	</body>

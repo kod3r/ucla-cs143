@@ -2,6 +2,7 @@
 
 define(PERSON_VIEW, 'person-view.php');
 define(MOVIE_VIEW, 'movie-view.php');
+define(REVIEW_FORM, 'review.php');
 
 /**
  * Instantiates a PDO object to the db and returns a handle
@@ -84,7 +85,7 @@ function render_table($objects, $link_url, $id_col, $link_col, $table_header = '
 			$html .= '<td>';
 
 			if ( $id && $link_url && $col === $link_col ) {
-				$html .= "<a href='$link_url?id=$id'>" . $o[$col] . '</a>';
+				$html .= hyperlink( $link_url, $id, $o[$col] );
 			} else {
 				$html .= $o[$col];
 			}
@@ -97,4 +98,36 @@ function render_table($objects, $link_url, $id_col, $link_col, $table_header = '
 
 	$html .= '</table>';
 	return $html;
+}
+
+/**
+ * Appends "?id=" and $id to $url
+ */
+function url_for_id( $url, $id ) {
+	return "$url?id=$id";
+}
+
+/**
+ * Returns and HTML anchor tag for the given inputs
+ * @param $url - url to link to
+ * @param $id - parameter to submit as an 'id' GET parameter
+ * @param $target
+ * @param $text
+ */
+function hyperlink( $url, $id, $text, $target = NULL ) {
+	$a = '<a href="' . url_for_id( $url, $id ) . '"';
+
+	if ( $target )
+		$a .= ' target="_blank"';
+
+	$a .= ">$text</a>";
+	return $a;
+}
+
+/**
+ * Redirects to $url and stops execution
+ */
+function redirect_to( $url ) {
+	header( "Location: $url" );
+	die;
 }
