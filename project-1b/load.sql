@@ -12,3 +12,20 @@ LOAD DATA LOCAL INFILE './data/movieactor2.del'   INTO TABLE `MovieActor`    FIE
 LOAD DATA LOCAL INFILE './data/moviedirector.del' INTO TABLE `MovieDirector` FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"';
 
 LOAD DATA LOCAL INFILE './data/moviegenre.del'    INTO TABLE `MovieGenre`    FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"';
+
+INSERT INTO MaxPersonID(id)
+VALUES ((
+	SELECT MAX(id)
+	FROM (
+		SELECT MAX(id)+1 as id
+		FROM Actor
+
+		UNION
+
+		SELECT MAX(id)+1 as id
+		FROM Director
+	) as tmp
+));
+
+INSERT INTO MaxMovieID(id)
+VALUES ((SELECT MAX(id) FROM Movie));
