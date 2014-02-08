@@ -10,10 +10,23 @@ $actor_sql = 'SELECT last, first, sex, dob, dod
 	LIMIT 1
 ';
 
+$director_sql = 'SELECT last, first, dob, dod
+	FROM Director
+	WHERE id = :id
+	LIMIT 1
+';
+
 $dbh = get_db_handle();
 $sth = $dbh->prepare( $actor_sql );
 $sth->execute( array( ':id' => $id ) );
 $actor = $sth->fetch( PDO::FETCH_ASSOC );
+
+// Check if person is listed as a Director
+if ( empty( $actor ) ) {
+	$sth = $dbh->prepare( $director_sql );
+	$sth->execute( array( ':id' => $id ) );
+	$actor = $sth->fetch( PDO::FETCH_ASSOC );
+}
 
 if ( empty( $actor ) ) {
 	error_404();
@@ -52,8 +65,7 @@ $directed = $sth->fetchAll( PDO::FETCH_ASSOC );
 		<p>
 			<strong><?php echo $actor['first'] . ' ' . $actor['last']; ?></strong>
 			<br>
-			<?php echo $actor['sex']; ?>
-			<br>
+			<?php if ( !empty( $actor['sex'] ) ) echo $actor['sex'] . '<br>'; ?>
 			<?php echo $actor['dob'] ? 'Born: ' . date( 'F j, Y', strtotime( $actor['dob'] ) ) . '<br>' : ''; ?>
 			<?php echo $actor['dod'] ? 'Died: ' . date( 'F j, Y', strtotime( $actor['dod'] ) ) . '<br>' : ''; ?>
 		</p>
