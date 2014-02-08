@@ -1,5 +1,6 @@
 <?php
 
+define(PERSON_ADD, 'person-add.php');
 define(PERSON_VIEW, 'person-view.php');
 define(MOVIE_VIEW, 'movie-view.php');
 define(REVIEW_FORM, 'review.php');
@@ -23,7 +24,7 @@ function get_db_handle() {
 }
 
 /**
- * Returns a 404 HTTP status code and redirects to the 404 page
+ * Returns a 404 HTTP status code and displays an error page
  */
 function error_404() {
 	header( 'HTTP/1.1 404 Not Found' );
@@ -36,6 +37,26 @@ function error_404() {
 	<body>
 		<h2>404!</h2>
 		<p>That page does not exist!</p>
+	</body>
+</html>
+<?php
+	die;
+}
+
+/**
+ * Returns a 500 HTTP status code and displays an error page
+ */
+function error_500() {
+	header( 'HTTP/1.1 500 Internal Server Error' );
+?>
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>500 - Oops!</title>
+	</head>
+	<body>
+		<h2>500 Error!</h2>
+		<p>Something went wrong :(</p>
 	</body>
 </html>
 <?php
