@@ -174,7 +174,7 @@ function page_header( $title ) {
 					<li><a href="/person-add.php">Add Person</a></li>
 					<li><a href="#">Add Movie</a></li>
 					<li><a href="#">Add Relation</a></li>
-					<li><a href="#">Find Person or Movie</a></li>
+					<li><a href="/search.php">Find Person or Movie</a></li>
 				</ul>
 			</nav>
 		</header>
