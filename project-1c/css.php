@@ -40,7 +40,7 @@ nav li {
 	display: inline;
 }
 
-nav li a {
+nav li a, nav li a:visited {
 	color: #556270;
 	font-size: 16px;
 }
