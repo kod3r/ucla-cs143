@@ -272,14 +272,8 @@ if ( isset( $_POST['form'] ) ) {
 		redirect_to( url_for_id( PERSON_VIEW, $new_id ) );
 	}
 }
-
+page_header( 'Add Person' );
 ?>
-<html>
-	<head>
-		<title>Add Person</title>
-	</head>
-
-	<body>
 		<p><h3>New person information</h3></p>
 		<form action="<?php echo PERSON_ADD; ?>" method="POST">
 			<?php if ( isset( $error_messages['name'] ) ) echo $error_messages['name']; ?>
@@ -311,5 +305,4 @@ if ( isset( $_POST['form'] ) ) {
 			<br>
 			<input type="submit" value="Submit">
 		</form>
-	</body>
-</html>
+<?php page_footer(); ?>

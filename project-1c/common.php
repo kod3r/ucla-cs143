@@ -152,3 +152,41 @@ function redirect_to( $url ) {
 	header( "Location: $url" );
 	die;
 }
+
+/**
+ * Generate the HTML header for each page.
+ * @param $title - the page's title
+ */
+function page_header( $title ) {
+?>
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CS143 Project 1C - Movie Database - <?php echo htmlspecialchars( $title ); ?></title>
+		<link href='http://fonts.googleapis.com/css?family=Lustria|Lato' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" type="text/css" href="/css.php">
+	</head>
+	<body>
+		<header>
+			<h1>Phivan.com Movie Database</h1>
+			<nav>
+				<ul>
+					<li><a href="/person-add.php">Add Person</a></li>
+					<li><a href="#">Add Movie</a></li>
+					<li><a href="#">Add Relation</a></li>
+					<li><a href="#">Find Person or Movie</a></li>
+				</ul>
+			</nav>
+		</header>
+<?php
+}
+
+/**
+ * Generate the HTML footer for each page
+ */
+function page_footer() {
+?>
+	</body>
+</html>
+<?php
+}

@@ -55,13 +55,8 @@ $sth = $dbh->prepare( $directed_sql );
 $sth->execute( array( ':id' => $id ) );
 $directed = $sth->fetchAll( PDO::FETCH_ASSOC );
 
+page_header( $actor['first'] . ' ' . $actor['last'] );
 ?>
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>CS143 Project 1C - Movie Database</title>
-	</head>
-	<body>
 		<p>
 			<strong><?php echo $actor['first'] . ' ' . $actor['last']; ?></strong>
 			<br>
@@ -72,7 +67,4 @@ $directed = $sth->fetchAll( PDO::FETCH_ASSOC );
 
 		<?php echo render_table( $directed, MOVIE_VIEW, 'id', 'Title', 'Films Directed' ) . '<br>'; ?>
 		<?php echo render_table( $acted, MOVIE_VIEW, 'id', 'Title', 'Filmography' ); ?>
-	</body>
-</html>
-
-
+<?php page_footer(); ?>

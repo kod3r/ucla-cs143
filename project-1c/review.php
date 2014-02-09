@@ -54,14 +54,8 @@ if ( isset( $_GET['id'] ) ) {
 
 	redirect_to( url_for_id( MOVIE_VIEW, (int)$review['id'] ) );
 }
-
+page_header( 'New Review' );
 ?>
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>CS143 Project 1C - Movie Database</title>
-	</head>
-	<body>
 		<form action="<?php echo REVIEW_FORM; ?>" method="POST">
 			You are reviewing <strong><?php echo hyperlink( MOVIE_VIEW, $movie['id'], $movie['title'], '_blank' ); ?></strong>
 			<br>
@@ -86,5 +80,4 @@ if ( isset( $_GET['id'] ) ) {
 			<input type="submit" value="Submit">
 			<input type="hidden" value="<?php echo $_GET['id']; ?>" name="review[id]">
 		</form>
-	</body>
-</html>
+<?php page_footer(); ?>

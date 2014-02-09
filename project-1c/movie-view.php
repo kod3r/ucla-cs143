@@ -74,14 +74,8 @@ if ( sizeof( $comments ) > 0 ) {
 		$comments_html .= '</p></div>';
 	}
 }
-
+page_header( $movie['title'] );
 ?>
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>CS143 Project 1C - Movie Database</title>
-	</head>
-	<body>
 		<p>
 			<strong><?php echo $movie['title'] ?></strong>, <em><?php echo $movie['year']; ?></em>
 			<br>
@@ -104,5 +98,4 @@ if ( sizeof( $comments ) > 0 ) {
 			<?php echo hyperlink( REVIEW_FORM, $id, 'Add review'); ?>
 			<?php echo $comments_html; ?>
 		</div>
-	</body>
-</html>
+<?php page_footer(); ?>
