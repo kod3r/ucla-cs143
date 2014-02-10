@@ -67,7 +67,7 @@ $comments = $sth->fetchAll( PDO::FETCH_ASSOC );
 if ( sizeof( $comments ) > 0 ) {
 	$comments_html = '';
 	foreach ( $comments as $c ) {
-		$comments_html .= '<div style="border: 4px double gray;"><p style="margin: 5px">';
+		$comments_html .= '<div class="comment"><p>';
 		$comments_html .= 'Name: '   . $c['name']   . '<br>';
 		$comments_html .= 'Rating: ' . $c['rating'] . '<br>';
 		$comments_html .= $c['comment'];
@@ -92,7 +92,7 @@ page_header( $movie['title'] );
 		<br>
 		<?php echo render_table( $cast, PERSON_VIEW, 'id', 'Name', 'Film Cast' ); ?>
 		<br>
-		<div style="width: 45%;">
+		<div class="comment-wrapper">
 			<strong>User reviews</strong>
 			<br>
 			<?php echo hyperlink( REVIEW_FORM, $id, 'Add review'); ?>

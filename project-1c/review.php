@@ -57,9 +57,7 @@ if ( isset( $_GET['id'] ) ) {
 page_header( 'New Review' );
 ?>
 		<form action="<?php echo REVIEW_FORM; ?>" method="POST">
-			You are reviewing <strong><?php echo hyperlink( MOVIE_VIEW, $movie['id'], $movie['title'], '_blank' ); ?></strong>
-			<br>
-			<br>
+			<p>You are reviewing <strong><?php echo hyperlink( MOVIE_VIEW, $movie['id'], $movie['title'], '_blank' ); ?></strong></p>
 			Your name: <input type="text" name="review[name]">
 			<br>
 			Rating:

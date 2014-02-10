@@ -49,6 +49,19 @@ p, div {
 	clear: both;
 }
 
+.comment-wrapper {
+	width: 45%;
+}
+
+.comment {
+	border: 4px double gray;
+	margin: 5px 0 5px 0;
+}
+
+.comment p {
+	margin: 5px;
+}
+
 <?php
 /**
  * End of file...
