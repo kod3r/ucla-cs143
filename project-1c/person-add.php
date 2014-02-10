@@ -265,11 +265,13 @@ if ( isset( $_POST['form'] ) ) {
 		$default_values['type'] = (string)$form['type'];
 	}
 
-	$new_id = save_person_in_db( $default_values );
-	if ( !$new_id ) {
-		error_500();
-	} else {
-		redirect_to( url_for_id( PERSON_VIEW, $new_id ) );
+	if ( empty( $error_messages ) ) {
+		$new_id = save_person_in_db( $default_values );
+		if ( !$new_id ) {
+			error_500();
+		} else {
+			redirect_to( url_for_id( PERSON_VIEW, $new_id ) );
+		}
 	}
 }
 page_header( 'Add Person' );
@@ -283,12 +285,9 @@ page_header( 'Add Person' );
 			<br>
 			<?php if ( isset( $error_messages['sex'] ) ) echo $error_messages['sex']; ?>
 			Gender:
-				<select name="form[sex]" value="<?php echo $default_values['sex']; ?>">
-					<option></option>
-					<option value="male" <?php echo ($default_values['sex'] == 'male' ? 'selected' : '' ); ?> >Male</option>
-					<option value="female" <?php echo ($default_values['sex'] == 'female' ? 'selected' : '' ); ?> >Female</option>
-				</select>
-			<br>
+				<input type="radio" name="form[sex]" value="male" <?php echo ($default_values['sex'] == 'male' ? 'checked' : '' ); ?> >Male
+				<input type="radio" name="form[sex]" value="female" <?php echo ($default_values['sex'] == 'female' ? 'checked' : '' ); ?> >Female
+				<br>
 			<?php if ( isset( $error_messages['dob'] ) ) echo $error_messages['dob']; ?>
 			Date of birth: <?php echo build_date_form( 'form[dob]', $default_values['dob'] ); ?>
 			<br>

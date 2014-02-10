@@ -60,7 +60,7 @@ page_header( $actor['first'] . ' ' . $actor['last'] );
 		<p>
 			<strong><?php echo $actor['first'] . ' ' . $actor['last']; ?></strong>
 			<br>
-			<?php if ( !empty( $actor['sex'] ) ) echo $actor['sex'] . '<br>'; ?>
+			<?php if ( !empty( $actor['sex'] ) ) echo ucfirst( $actor['sex'] ) . '<br>'; ?>
 			<?php echo $actor['dob'] ? 'Born: ' . date( 'F j, Y', strtotime( $actor['dob'] ) ) . '<br>' : ''; ?>
 			<?php echo $actor['dod'] ? 'Died: ' . date( 'F j, Y', strtotime( $actor['dod'] ) ) . '<br>' : ''; ?>
 		</p>
