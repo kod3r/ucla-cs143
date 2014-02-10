@@ -5,9 +5,9 @@ page_header( 'Add Relation' );
 $dbh = get_db_handle();
 
 if ( ! isset($_POST['submit'] ) ) {
-	$movie_sql = 'SELECT title, id FROM Movie ORDER BY title';
-	$actor_sql = 'SELECT Actor.id, CONCAT(Actor.first, " ", Actor.last) as Name FROM Actor ORDER BY Actor.first, Actor.last';
-	$director_sql = 'SELECT Director.id, CONCAT(Director.first, " ", Director.last) as Name FROM Director ORDER BY Director.first, Director.last';
+	$movie_sql = 'SELECT CONCAT(title, " (", year, ")") as title, id FROM Movie ORDER BY title';
+	$actor_sql = 'SELECT Actor.id, CONCAT(Actor.first, " ", Actor.last, " (", dob, ")") as Name FROM Actor ORDER BY Actor.first, Actor.last';
+	$director_sql = 'SELECT Director.id, CONCAT(Director.first, " ", Director.last, " (", dob, ")") as Name FROM Director ORDER BY Director.first, Director.last';
 
 	$stmt = $dbh->prepare( $movie_sql );
 	$stmt->execute();

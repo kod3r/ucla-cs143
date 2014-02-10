@@ -19,9 +19,9 @@ if ( '' === $term ) {
 
 	$term_list = explode( ' ', strtolower( $term ) );
 
-	$actor_sql = 'SELECT Actor.id, CONCAT(Actor.first, " ", Actor.last) as Name FROM Actor WHERE 1';
-	$director_sql = 'SELECT Director.id, CONCAT(Director.first, " ", Director.last) as Name FROM Director WHERE 1';
-	$movie_sql = 'SELECT Movie.id, Movie.title FROM Movie WHERE 1';
+	$actor_sql = 'SELECT Actor.id, CONCAT(Actor.first, " ", Actor.last, " (", dob, ")") as Name FROM Actor WHERE 1';
+	$director_sql = 'SELECT Director.id, CONCAT(Director.first, " ", Director.last, " (", dob, ")") as Name FROM Director WHERE 1';
+	$movie_sql = 'SELECT Movie.id, CONCAT(Movie.title, " (", year, ")") as title FROM Movie WHERE 1';
 
 	// No PDO bindings here because of some wonkiness concerning bindings that are not surrounded by whitespace
 	foreach ( $term_list as $individual_term ) {
