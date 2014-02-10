@@ -171,8 +171,8 @@ function save_person_in_db( $data ) {
 		':first' => $data['first'],
 		':last'  => $data['last'],
 		':sex'   => $data['sex'],
-		':dob'   => $dob,
-		':dod'   => $dod,
+		':dob'   => $data_dob['year'] . '-' . $data_dob['month'] . '-' . $data_dob['day'],
+		':dod'   => $data_dod['year'] . '-' . $data_dod['month'] . '-' . $data_dod['day'],
 	);
 
 	if ( $person_insert_sql != $actor_insert_sql ) {
