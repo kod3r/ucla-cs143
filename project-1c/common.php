@@ -173,7 +173,7 @@ function page_header( $title ) {
 				<ul>
 					<li><a href="/person-add.php">Add Person</a></li>
 					<li><a href="/movie-add.php">Add Movie</a></li>
-					<li><a href="#">Add Relation</a></li>
+					<li><a href="/relation.php">Add Relation</a></li>
 					<li><a href="/search.php">Find Person or Movie</a></li>
 				</ul>
 			</nav>
@@ -189,4 +189,20 @@ function page_footer() {
 	</body>
 </html>
 <?php
+}
+
+/**
+ * Generate an HTML select box.
+ * @param $name The HTML form name to use
+ * @param $values The values to iterate over for the selector
+ * @param $key_col The name of the key column
+ * @param $display_col The name of the column that holds the displayed value
+ */
+function generate_select_box( $name, $values, $key_col, $display_col ) {
+	$box = '<select name="' . $name . '">';
+	foreach ( $values as $value ) {
+		$box .= '<option value="' . $value[$key_col] . '">' . $value[$display_col] . '</option>';
+	}
+	$box .= '</select>';
+	return $box;
 }
