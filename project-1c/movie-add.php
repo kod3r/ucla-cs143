@@ -18,6 +18,17 @@ if ( isset($_POST['submit'] ) ) {
 
 		$mmid = $stmt->fetchColumn();
 
+		// If the MaxMovieID table has not been initialized, do so now
+		if ( !$mmid ) {
+			$stmt = $dbh->prepare( 'SELECT MAX(id) from Movie' );
+			$stmt->execute();
+
+			$mmid = $stmt->fetchColumn();
+
+			$stmt = $dbh->prepare( 'INSERT INTO MaxMovieID(id) VALUES(:id)' );
+			$stmt->execute( array( ':id' => $mmid + 1 ) );
+		}
+
 		$movie_insert_sql = 'INSERT INTO Movie (id, title, year, rating, company) VALUES(:id, :title, :year, :rating, :company)';
 		$stmt = $dbh->prepare( $movie_insert_sql );
 		$stmt->execute( array(
