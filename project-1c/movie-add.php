@@ -44,6 +44,25 @@ if ( isset($_POST['submit'] ) ) {
 		$stmt->execute();
 
 		$saved = $mmid + 1;
+
+		$genres_insert_sql = 'INSERT INTO MovieGenre (mid, genre) VALUES';
+		$genres = explode( ',', $_POST['genres'] );
+		$genre_args = array();
+
+		for ( $i = 0; $i < sizeof( $genres ); $i++ ) {
+			$key = ":g$i";
+			$genres_insert_sql .= ",(:mid, $key)";
+			$genre_args[$key] = trim( $genres[$i] );
+		}
+
+		if ( !empty( $genre_args ) ) {
+			$count = 1;
+			$genres_insert_sql = str_replace('VALUES,', 'VALUES', $genres_insert_sql, $count);
+
+			$genre_args[':mid'] = $saved;
+			$stmt = $dbh->prepare( $genres_insert_sql );
+			$stmt->execute( $genre_args );
+		}
 	}
 }
 
@@ -69,6 +88,7 @@ Rating: <select name="rating">
 		echo '<option value="' . $rating . '">' . $rating . '</option>';
 		} ?></select><br>
 Company: <input type="text" name="company"><br>
+Genres (separated by commas): <input type="text" name="genres"><br>
 <input type="submit" name="submit" value="Save">
 </form>
 <?php
