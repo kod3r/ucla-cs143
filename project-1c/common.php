@@ -3,7 +3,11 @@
 define(PERSON_ADD, 'person-add.php');
 define(PERSON_VIEW, 'person-view.php');
 define(MOVIE_VIEW, 'movie-view.php');
+define(MOVIE_ADD, 'movie-add.php');
 define(REVIEW_FORM, 'review.php');
+define(RELATION_ADD, 'relation.php');
+define(SEARCH, 'search.php');
+define(CSS, 'css.php');
 
 /**
  * Instantiates a PDO object to the db and returns a handle
@@ -164,17 +168,17 @@ function page_header( $title ) {
 	<head>
 		<title>CS143 Project 1C - Movie Database - <?php echo htmlspecialchars( $title ); ?></title>
 		<link href='http://fonts.googleapis.com/css?family=Lustria|Lato' rel='stylesheet' type='text/css'>
-		<link rel="stylesheet" type="text/css" href="/css.php">
+		<link rel="stylesheet" type="text/css" href="<?php echo CSS; ?>">
 	</head>
 	<body>
 		<header>
 			<h1>Phivan.com Movie Database</h1>
 			<nav>
 				<ul>
-					<li><a href="/person-add.php">Add Person</a></li>
-					<li><a href="/movie-add.php">Add Movie</a></li>
-					<li><a href="/relation.php">Add Relation</a></li>
-					<li><a href="/search.php">Find Person or Movie</a></li>
+					<li><a href="<?php echo PERSON_ADD;   ?>">Add Person</a></li>
+					<li><a href="<?php echo MOVIE_ADD;    ?>">Add Movie</a></li>
+					<li><a href="<?php echo RELATION_ADD; ?>">Add Relation</a></li>
+					<li><a href="<?php echo SEARCH;       ?>">Find Person or Movie</a></li>
 				</ul>
 			</nav>
 		</header>
