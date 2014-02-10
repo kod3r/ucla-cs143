@@ -20,11 +20,13 @@ if ( '' === $term ) {
 	$term_list = explode( ' ', strtolower( $term ) );
 
 	$actor_sql = 'SELECT Actor.id, CONCAT(Actor.first, " ", Actor.last) as Name FROM Actor WHERE 1';
+	$director_sql = 'SELECT Director.id, CONCAT(Director.first, " ", Director.last) as Name FROM Director WHERE 1';
 	$movie_sql = 'SELECT Movie.id, Movie.title FROM Movie WHERE 1';
 
 	// No PDO bindings here because of some wonkiness concerning bindings that are not surrounded by whitespace
 	foreach ( $term_list as $individual_term ) {
 		$actor_sql .= ' AND ( LOWER(Actor.first) LIKE "%' . $individual_term . '%" OR LOWER(Actor.last) LIKE "%' . $individual_term . '%" )';
+		$director_sql .= ' AND ( LOWER(Director.first) LIKE "%' . $individual_term . '%" OR LOWER(Director.last) LIKE "%' . $individual_term . '%" )';
 		$movie_sql .= ' AND LOWER(Movie.title) LIKE "%' . $individual_term . '%"';
 	}
 
@@ -34,12 +36,19 @@ if ( '' === $term ) {
 	$stmt->execute();
 	$actors = $stmt->fetchAll( PDO::FETCH_ASSOC );
 
+	$stmt = $dbh->prepare( $director_sql );
+	$stmt->execute();
+	$directors = $stmt->fetchAll( PDO::FETCH_ASSOC );
+
 	$stmt = $dbh->prepare( $movie_sql );
 	$stmt->execute();
 	$movies = $stmt->fetchAll( PDO::FETCH_ASSOC );
 
 	echo '<div><h2>Actor Results for <em>' . implode( $term_list, ' AND ' ) . '</em></h2>';
 	echo render_table( $actors, 'person-view.php', 'id', 'Name', '', false ) . '</div>';
+
+	echo '<div><h2>Director Results for <em>' . implode( $term_list, ' AND ' ) . '</em></h2>';
+	echo render_table( $directors, 'person-view.php', 'id', 'Name', '', false ) . '</div>';
 
 	echo '<div><h2>Movie Results for <em>' . implode( $term_list, ' AND ' ) . '</em></h2>';
 	echo render_table( $movies, 'movie-view.php', 'id', 'title', '', false ) . '</div>';
