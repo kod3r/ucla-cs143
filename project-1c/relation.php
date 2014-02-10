@@ -1,10 +1,27 @@
 <?php
 require_once( 'common.php' );
 
-page_header( 'Add Relation' );
 $dbh = get_db_handle();
 
-if ( ! isset($_POST['submit'] ) ) {
+if ( isset( $_POST['submit'] ) ) {
+	$mode = $_POST['mode'];
+
+	if ( !in_array( $mode, array('director', 'actor' ) ) )
+		die('Invalid mode.');
+
+	if ( $mode == 'director' ) {
+		$sql = 'INSERT INTO MovieDirector (mid, did) VALUES(:mid, :did)';
+		$stmt = $dbh->prepare( $sql );
+		$stmt->execute( array( ':mid' => $_POST['movie'], ':did' => $_POST['director'] ) );
+	} else { // Adding an actor, then
+		$sql = 'INSERT INTO MovieActor (mid, aid, role) VALUES(:mid, :aid, :role)';
+		$stmt = $dbh->prepare( $sql );
+		$stmt->execute( array( ':mid' => $_POST['movie'], ':aid' => $_POST['actor'], ':role' => $_POST['role'] ) );
+	}
+
+	redirect_to( url_for_id( MOVIE_VIEW, $_POST['movie'] ) );
+
+} else {
 	$movie_sql = 'SELECT CONCAT(title, " (", year, ")") as title, id FROM Movie ORDER BY title';
 	$actor_sql = 'SELECT Actor.id, CONCAT(Actor.first, " ", Actor.last, " (", dob, ")") as Name FROM Actor ORDER BY Actor.first, Actor.last';
 	$director_sql = 'SELECT Director.id, CONCAT(Director.first, " ", Director.last, " (", dob, ")") as Name FROM Director ORDER BY Director.first, Director.last';
@@ -20,6 +37,9 @@ if ( ! isset($_POST['submit'] ) ) {
 	$stmt = $dbh->prepare( $director_sql );
 	$stmt->execute();
 	$directors = $stmt->fetchAll( PDO::FETCH_ASSOC );
+}
+
+page_header( 'Add Relation' );
 ?>
 	<div>
 		<h3>Add Actor to Movie</h3>
@@ -41,24 +61,6 @@ if ( ! isset($_POST['submit'] ) ) {
 		</form>
 	</div>
 <?php
-} else {
-	$mode = $_POST['mode'];
-
-	if ( !in_array( $mode, array('director', 'actor' ) ) )
-		die('Invalid mode.');
-
-	if ( $mode == 'director' ) {
-		$sql = 'INSERT INTO MovieDirector (mid, did) VALUES(:mid, :did)';
-		$stmt = $dbh->prepare( $sql );
-		$stmt->execute( array( ':mid' => $_POST['movie'], ':did' => $_POST['director'] ) );
-	} else { // Adding an actor, then
-		$sql = 'INSERT INTO MovieActor (mid, aid, role) VALUES(:mid, :aid, :role)';
-		$stmt = $dbh->prepare( $sql );
-		$stmt->execute( array( ':mid' => $_POST['movie'], ':aid' => $_POST['actor'], ':role' => $_POST['role'] ) );
-	}
-
-	print 'Relationship saved!';
-}
 
 page_footer();
 ?>
