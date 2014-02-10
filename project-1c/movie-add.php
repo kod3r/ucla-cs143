@@ -66,13 +66,14 @@ if ( isset($_POST['submit'] ) ) {
 	}
 }
 
+if ( false !== $saved )
+	redirect_to( url_for_id( MOVIE_VIEW, $saved ) );
+
 page_header( 'Add a Movie' );
 ?>
 <h3>Add a Movie</h3>
 <?php if ($error)
 	echo '<strong>' . $error . '</strong>';
-if ( false !== $saved )
-	echo '<p>Movie saved! ' . hyperlink( 'movie-view.php', $saved, 'Click here to view.' ) . '</p>';
 ?>
 <form method="post">
 Title: <input type="text" name="title"><br>
