@@ -1,0 +1,22 @@
+UCLA CS 143
+Professor Cho
+Winter 2014
+
+Project 1C: Web Interface for a Movie Database
+
+Phil Crumm
+Ivan Petkov
+
+We implemented all portions of the specification for this project such as adding new actor/director information, adding new movie information, adding comments and ratings to movies, crediting actors and directors for their roles in movies (e.g. adding a relation between people and movies), as well as viewing actor/director/movie information, and of course searching the database.
+
+Ivan contributed the following to the project:
+	* implemented a page to add new actor and director information
+	* implemented a page for viewing actor/director information, including any movies they have starred in or directed
+	* implemented a page for viewing movie information, including submitted comments and ratings
+	* implemented a page for submitting new movie reviews and comments
+
+Phil contributed the following to the project:
+	* gave the web interface a sleek theme
+	* implemented a page for adding new movie information
+	* implemented a page for adding relations between people and movies
+	* implemented a page for searching actors, directors, and movies
