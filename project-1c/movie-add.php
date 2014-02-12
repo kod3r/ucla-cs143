@@ -33,10 +33,10 @@ if ( isset($_POST['submit'] ) ) {
 		$stmt = $dbh->prepare( $movie_insert_sql );
 		$stmt->execute( array(
 			':id'		=> $mmid + 1,
-			':title'	=> $_POST['title'],
-			':year'		=> $_POST['year'],
-			':rating'	=> $_POST['rating'],
-			':company'	=> $_POST['company'],
+			':title'	=> (string)$_POST['title'],
+			':year'		=> (int)$_POST['year'],
+			':rating'	=> max( 0, min( 5, (int)$_POST['rating'] ) ),
+			':company'	=> (string)$_POST['company'],
 		) );
 
 		$update_id_sql = 'UPDATE MaxMovieID SET id=' . $mmid + 1;
