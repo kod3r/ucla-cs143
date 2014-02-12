@@ -8,5 +8,14 @@ Ivan Petkov (ippetkov@ucla.edu)
 The contents of this repository are licensed under a public domain license unless otherwise indicated. The projects are provided here for reference only and should not be used to help in any other academic work.
 
 ## Projects
+
+Note: since this class focuses on databases and *not* on web applications. Since the project specifications explicitly state to expect valid, nonexploitive inputs, their sanitization is nonexhaustive or missing altogether in the face of time constraints.
+
 ### Project 1A
-Simple PHP "calculator"
+Simple PHP "calculator" -- an exercise in PHP
+
+### Project 1B
+Precursor to a movie database -- an exercise in establishing SQL constraints
+
+### Project 1C
+A web interface for an actual movie database
