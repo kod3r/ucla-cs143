@@ -35,7 +35,7 @@ if ( isset($_POST['submit'] ) ) {
 			':id'		=> $mmid + 1,
 			':title'	=> (string)$_POST['title'],
 			':year'		=> (int)$_POST['year'],
-			':rating'	=> max( 0, min( 5, (int)$_POST['rating'] ) ),
+			':rating'	=> (string)$_POST['rating'],
 			':company'	=> (string)$_POST['company'],
 		) );
 
