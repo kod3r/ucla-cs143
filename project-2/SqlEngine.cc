@@ -130,9 +130,51 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
 RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 {
-  /* your code here */
+  // Status variables
+  RC          rc = 0;
+  RC          rfCloseStatus;
 
-  return 0;
+  // File handles
+  ifstream    lfs;
+  RecordFile  rf;
+
+  // Buffer for reading from loadfile
+  string      line;
+
+  // Values for inserting into the table
+  int         key;
+  string      value;
+  RecordId    rid;
+
+  try {
+    lfs.open(loadfile.c_str(), std::ifstream::in);
+  } catch(...) {
+    return RC_FILE_OPEN_FAILED;
+  }
+
+  if((rc = rf.open((table + ".tbl").c_str(), 'w')) < 0)
+    return rc;
+
+  while(!lfs.eof()) {
+    getline(lfs, line);
+
+    if((rc = parseLoadLine(line, key, value)) < 0)
+      break;
+
+    if((rc = rf.append(key, value, rid)) < 0)
+      break;
+  }
+
+  try {
+    lfs.close();
+  } catch(...) {
+    rc = RC_FILE_CLOSE_FAILED;
+  }
+
+  if((rfCloseStatus = rf.close()) < 0)
+    return rfCloseStatus;
+
+  return rc;
 }
 
 RC SqlEngine::parseLoadLine(const string& line, int& key, string& value)
