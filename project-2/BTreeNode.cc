@@ -10,16 +10,19 @@ using namespace std;
 #define BT_NODE_RAW_LEAF      (1<<1)
 #define BT_NODE_RAW_ROOT      (1<<2)
 
+static const PageId INVALID_PID = -1;
+
 /**
  * A simple glorified struct for holding raw BTNode data.
  * Wrapper class helps maintain the clean/dirty state, prevents
  * memory access violations, and handles loading data from disk
  */
+template <typename Key, typename Value, Key INVALID_KEY>
 class BTRawNode {
 public:
-  BTRawNode() : flags(0) {
-    for(int i = 0; i < ARRAY_SIZE(pids); i++) {
-      pids[i] = -1; // A pid of -1 indicates an unset key value for the same index
+  BTRawNode() : flags(0), nextPid(INVALID_PID) {
+    for(int i = 0; i < ARRAY_SIZE(keys); i++) {
+      keys[i] = INVALID_KEY;
     }
   }
 
@@ -39,11 +42,12 @@ public:
   bool isRoot()  const { return flags & BT_NODE_RAW_ROOT;  }
 
   void const * data() const { return this; }
+  void* data() { return this; }
 
   unsigned maxKeyIndex() const { return ARRAY_SIZE(keys); }
-  unsigned maxPidIndex() const { return ARRAY_SIZE(pids); }
+  unsigned maxPidIndex() const { return ARRAY_SIZE(values); }
 
-  bool getKey(unsigned index, int& k) const {
+  bool getKey(unsigned index, Key& k) const {
     if(index < ARRAY_SIZE(keys)) {
       k = keys[index];
       return true;
@@ -52,13 +56,17 @@ public:
     return false;
   }
 
-  bool getPid(unsigned index, PageId& p) const {
-    if (index < ARRAY_SIZE(pids)) {
-      p = pids[index];
+  bool getValue(unsigned index, Value& v) const {
+    if (index < ARRAY_SIZE(values)) {
+      v = values[index];
       return true;
     }
 
     return false;
+  }
+
+  PageId getNextPid() const {
+    return nextPid;
   }
 
   // Setters
@@ -89,7 +97,7 @@ public:
     flags &= ~BT_NODE_RAW_LEAF;
   }
 
-  bool setKey(unsigned index, int k) {
+  bool setKey(unsigned index, const Key& k) {
     if(index < ARRAY_SIZE(keys)) {
       keys[index] = k;
       flags |= BT_NODE_RAW_DIRTY;
@@ -99,14 +107,18 @@ public:
     return false;
   }
 
-  bool setPid(unsigned index, PageId& p) {
-    if(index < ARRAY_SIZE(pids)) {
-      pids[index] = p;
+  bool setValue(unsigned index, const PageId& v) {
+    if(index < ARRAY_SIZE(values)) {
+      values[index] = v;
       flags |= BT_NODE_RAW_DIRTY;
       return true;
     }
 
     return false;
+  }
+
+  void setNextPid(const PageId& pid) {
+    nextPid = pid;
   }
 
 protected:
@@ -117,19 +129,25 @@ protected:
    *
    * In the event that DEGREE is such that the max page size is not fully utilized, we pad
    * the remainder of the structure so that the two sizes will match up.
+   *
+   * To efficiently reuse code, we make this class a templated class. Employing the reasoning
+   * commented above, we conservatively estimate the largest degree of keys and pointers that
+   * can fit inside a page. Since both leaf and non-leaf nodes will *always* have one PageId
+   * we hard code this value within the structure (nextPid).
    */
-  static const int DEGREE = PageFile::PAGE_SIZE / (2 * MAX(sizeof(PageId), sizeof(int)));
+  static const int DEGREE = PageFile::PAGE_SIZE / (2 * MAX(sizeof(int), MAX(sizeof(PageId), MAX(sizeof(Key), sizeof(Value)))));
 
   /**
    * Note: if we used an int for flags, it is possible to not need any padding
    * as the maximum page size will be word aligned. Since a zero sized array is forbidden
    * we make our flags use an short and always use a few padded bytes.
    */
-  PageId  pids[DEGREE];
-  int     keys[DEGREE - 1];
+  Value   values[DEGREE - 1];
+  Key     keys[DEGREE - 1];
+  PageId  nextPid;
   short   flags;
 
-  char    padding[PageFile::PAGE_SIZE - DEGREE*sizeof(PageId) - (DEGREE-1)*sizeof(int) - sizeof(short)];
+  char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short)];
 };
 
 
