@@ -62,6 +62,33 @@ public:
   }
 
   // Setters
+  void setRoot() {
+    if(isRoot())
+      return;
+
+    flags |=  BT_NODE_RAW_DIRTY;
+    flags |=  BT_NODE_RAW_ROOT;
+    flags &= ~BT_NODE_RAW_LEAF;
+  }
+
+  void setLeaf() {
+    if(isLeaf())
+      return;
+
+    flags |=  BT_NODE_RAW_DIRTY;
+    flags &= ~BT_NODE_RAW_ROOT;
+    flags |=  BT_NODE_RAW_LEAF;
+  }
+
+  void setNonLeaf() {
+    if(!isLeaf())
+      return;
+
+    flags |=  BT_NODE_RAW_DIRTY;
+    flags &= ~BT_NODE_RAW_ROOT;
+    flags &= ~BT_NODE_RAW_LEAF;
+  }
+
   bool setKey(unsigned index, int k) {
     if(index < ARRAY_SIZE(keys)) {
       keys[index] = k;
