@@ -2,6 +2,111 @@
 
 using namespace std;
 
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(*a))
+
+#define BT_NODE_RAW_DIRTY     (1<<0)
+#define BT_NODE_RAW_LEAF      (1<<1)
+#define BT_NODE_RAW_ROOT      (1<<2)
+
+/**
+ * A simple glorified struct for holding raw BTNode data.
+ * Wrapper class helps maintain the clean/dirty state, prevents
+ * memory access violations, and handles loading data from disk
+ */
+class BTRawNode {
+public:
+  BTRawNode() : flags(0) {
+    for(int i = 0; i < ARRAY_SIZE(pids); i++) {
+      pids[i] = -1; // A pid of -1 indicates an unset key value for the same index
+    }
+  }
+
+  BTRawNode(void *buf, size_t len) {
+    if(buf && buf != (void *)this) {
+      memcpy(this, buf, MIN(len, sizeof(this)));
+    }
+
+    // By definition the data is clean until written again
+    // regardless of the dirty bit upon the last disk write
+    flags &= ~BT_NODE_RAW_DIRTY;
+  }
+
+  // Getters
+  bool isDirty() const { return flags & BT_NODE_RAW_DIRTY; }
+  bool isLeaf()  const { return flags & BT_NODE_RAW_LEAF;  }
+  bool isRoot()  const { return flags & BT_NODE_RAW_ROOT;  }
+
+  void const * data() const { return this; }
+
+  unsigned maxKeyIndex() const { return ARRAY_SIZE(keys); }
+  unsigned maxPidIndex() const { return ARRAY_SIZE(pids); }
+
+  bool getKey(unsigned index, int& k) const {
+    if(index < ARRAY_SIZE(keys)) {
+      k = keys[index];
+      return true;
+    }
+
+    return false;
+  }
+
+  bool getPid(unsigned index, PageId& p) const {
+    if (index < ARRAY_SIZE(pids)) {
+      p = pids[index];
+      return true;
+    }
+
+    return false;
+  }
+
+  // Setters
+  bool setKey(unsigned index, int k) {
+    if(index < ARRAY_SIZE(keys)) {
+      keys[index] = k;
+      flags |= BT_NODE_RAW_DIRTY;
+      return true;
+    }
+
+    return false;
+  }
+
+  bool setPid(unsigned index, PageId& p) {
+    if(index < ARRAY_SIZE(pids)) {
+      pids[index] = p;
+      flags |= BT_NODE_RAW_DIRTY;
+      return true;
+    }
+
+    return false;
+  }
+
+protected:
+  /**
+   * A node of degree N will have N PageId pointers and N-1 keys, each being a word long.
+   * An additional "word" can be used to set some internal flags such as the type of the node.
+   * Thus we have n + n-1 + 1 = PageSize ==> 2n = PageSize => n = PageSize / 2.
+   *
+   * In the event that DEGREE is such that the max page size is not fully utilized, we pad
+   * the remainder of the structure so that the two sizes will match up.
+   */
+  static const int DEGREE = PageFile::PAGE_SIZE / (2 * MAX(sizeof(PageId), sizeof(int)));
+
+  /**
+   * Note: if we used an int for flags, it is possible to not need any padding
+   * as the maximum page size will be word aligned. Since a zero sized array is forbidden
+   * we make our flags use an short and always use a few padded bytes.
+   */
+  PageId  pids[DEGREE];
+  int     keys[DEGREE - 1];
+  short   flags;
+
+  char    padding[PageFile::PAGE_SIZE - DEGREE*sizeof(PageId) - (DEGREE-1)*sizeof(int) - sizeof(short)];
+};
+
+
+
 /*
  * Read the content of the node from the page pid in the PageFile pf.
  * @param pid[IN] the PageId to read
