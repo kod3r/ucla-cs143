@@ -20,20 +20,41 @@ static const PageId INVALID_PID = -1;
 template <typename Key, typename Value, Key INVALID_KEY>
 class BTRawNode {
 public:
-  BTRawNode() : flags(0), nextPid(INVALID_PID) {
+  BTRawNode() {
+    clearAll();
+  }
+
+  void clearAll() {
+    flags     = 0;
+    nextPid   = INVALID_PID;
+    pairCount = 0;
+
     for(int i = 0; i < ARRAY_SIZE(keys); i++) {
       keys[i] = INVALID_KEY;
     }
   }
 
-  BTRawNode(void *buf, size_t len) {
-    if(buf && buf != (void *)this) {
-      memcpy(this, buf, MIN(len, sizeof(this)));
-    }
-
+  RC read(PageId pid, const PageFile& pf) {
     // By definition the data is clean until written again
     // regardless of the dirty bit upon the last disk write
+    RC rc = pf.read(pid, this);
     flags &= ~BT_NODE_RAW_DIRTY;
+
+    // Recalculate the number of valid entries just in case
+    pairCount = 0;
+    while(pairCount < ARRAY_SIZE(keys) && keys[pairCount] != INVALID_KEY)
+      pairCount++;
+
+    return rc;
+  }
+
+  RC write(PageId pid, PageFile& pf) {
+    RC rc = pf.write(pid, this);
+
+    if(rc == 0)
+      flags &= ~BT_NODE_RAW_DIRTY;
+
+    return rc;
   }
 
   // Getters
@@ -41,32 +62,34 @@ public:
   bool isLeaf()  const { return flags & BT_NODE_RAW_LEAF;  }
   bool isRoot()  const { return flags & BT_NODE_RAW_ROOT;  }
 
-  void const * data() const { return this; }
-  void* data() { return this; }
-
-  unsigned maxKeyIndex() const { return ARRAY_SIZE(keys); }
-  unsigned maxPidIndex() const { return ARRAY_SIZE(values); }
-
-  bool getKey(unsigned index, Key& k) const {
-    if(index < ARRAY_SIZE(keys)) {
-      k = keys[index];
-      return true;
+  RC getPair(int eid, Key& k, Value& v) const {
+    if(eid < MIN(pairCount, ARRAY_SIZE(keys))) {
+      k = keys[eid];
+      v = values[eid];
+      return 0;
     }
 
-    return false;
+    return RC_NO_SUCH_RECORD;
   }
 
-  bool getValue(unsigned index, Value& v) const {
-    if (index < ARRAY_SIZE(values)) {
-      v = values[index];
-      return true;
+  // PageId template, i.e. non-leaf
+  template <Key, PageId, Key>
+  PageId getNextPid() const {
+    // last most pid is stored outside of the values array
+    if(pairCount < ARRAY_SIZE(keys) && keys[pairCount] != INVALID_KEY) { // sanity check
+      return pairCount < ARRAY_SIZE(keys)-1 ? values[pairCount+1] : nextPid;
     }
 
-    return false;
+    return INVALID_KEY;
   }
 
+  // Non PageId template, i.e. leaf node
   PageId getNextPid() const {
     return nextPid;
+  }
+
+  int getKeyCount() const {
+    return pairCount;
   }
 
   // Setters
@@ -97,28 +120,39 @@ public:
     flags &= ~BT_NODE_RAW_LEAF;
   }
 
-  bool setKey(unsigned index, const Key& k) {
-    if(index < ARRAY_SIZE(keys)) {
-      keys[index] = k;
-      flags |= BT_NODE_RAW_DIRTY;
-      return true;
-    }
+  RC insertPair(int& eid, const Key& k, const Value& v) {
+    if(pairCount >= ARRAY_SIZE(keys))
+      return RC_NODE_FULL;
 
-    return false;
+    keys[pairCount] = k;
+    values[pairCount] = v;
+
+    pairCount++;
+    flags |= BT_NODE_RAW_DIRTY;
+
+    eid = pairCount;
+    return 0;
   }
 
-  bool setValue(unsigned index, const PageId& v) {
-    if(index < ARRAY_SIZE(values)) {
-      values[index] = v;
-      flags |= BT_NODE_RAW_DIRTY;
-      return true;
-    }
+  // PageId template, i.e. non-leaf
+  template <Key, PageId, Key>
+  bool setNextPid(const PageId& pid) {
+    // sanity check
+    if(pairCount >= ARRAY_SIZE(keys) || keys[pairCount] == INVALID_KEY)
+      return false;
 
-    return false;
+    if(pairCount < ARRAY_SIZE(keys)-1)
+      values[pairCount] = pid;
+    else
+      nextPid = pid;
+
+    return true;
   }
 
-  void setNextPid(const PageId& pid) {
+  // Non PageId template, i.e. leaf node
+  bool setNextPid(const PageId& pid) {
     nextPid = pid;
+    return true;
   }
 
 protected:
@@ -145,9 +179,10 @@ protected:
   Value   values[DEGREE - 1];
   Key     keys[DEGREE - 1];
   PageId  nextPid;
-  short   flags;
+  unsigned short pairCount; // Cache the number of useful entries
+  char    flags;
 
-  char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short)];
+  char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short) - sizeof(char)];
 };
 
 
