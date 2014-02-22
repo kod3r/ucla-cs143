@@ -164,7 +164,12 @@ RC BTNonLeafNode::read(PageId pid, const PageFile& pf) {
 }
     
 /*
- * Write the content of the node to the page pid in the PageFile pf.
+ * Write the content of the node to the page pid in the PageFile pf. Avoids a write
+ * if no data has been changed and pid is the same as the pid from where the data
+ * was previously read from or written to.
+ * Note: if a read is issued from (pid1, pf1) and then a write is requested to (pid1, pf2)
+ * without updating data, it is possible for no data to be written. It is *strongly discouraged*
+ * to read from one page file and write to another.
  * @param pid[IN] the PageId to write to
  * @param pf[IN] PageFile to write to
  * @return 0 if successful. Return an error code if there is an error.

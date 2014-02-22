@@ -31,10 +31,16 @@ static const PageId INVALID_PID = -1;
 template <typename Key, typename Value, Key INVALID_KEY>
 class BTRawNode {
   public:
+    /**
+     * Default constructor: initialize all values as empty
+     */
     BTRawNode() {
       clearAll();
     }
 
+    /**
+     * Clears all internal flags and invalidates any stored keys
+     */
     void clearAll() {
       flags     = 0;
       nextPid   = INVALID_PID;
@@ -45,6 +51,13 @@ class BTRawNode {
       }
     }
 
+    /**
+     * Loads in a page of data from disk.
+     * Data considered "clean" until it is updated
+     * @param pid[IN] the PageId to read
+     * @param pf[IN] PageFile to read from
+     * @return 0 if successful. Return an error code if there is an error.
+     */
     RC read(PageId pid, const PageFile& pf) {
       // By definition the data is clean until written again
       // regardless of the dirty bit upon the last disk write
@@ -59,6 +72,13 @@ class BTRawNode {
       return rc;
     }
 
+    /**
+     * Write the node's data to the page pid in the PageFile pf.
+     * Data is considered "clean" if write succeds.
+     * @param pid[IN] the PageId to write to
+     * @param pf[IN] PageFile to write to
+     * @return 0 if successful. Return an error code if there is an error.
+     */
     RC write(PageId pid, PageFile& pf) {
       RC rc = pf.write(pid, this);
 
@@ -68,22 +88,55 @@ class BTRawNode {
       return rc;
     }
 
-    // Getters
+    /*************************************/
+    /*************  Getters  *************/
+    /*************************************/
+
+    /**
+     * Indicates if data in memory is dirty (differs from that on disk)
+     * @return true if dirty, false if clean
+     */
     bool isDirty() const { return flags & BT_NODE_RAW_DIRTY; }
+
+    /**
+     * Indicates if data represents a leaf node
+     * @return true if leaf node, false if non-leaf
+     */
     bool isLeaf()  const { return flags & BT_NODE_RAW_LEAF;  }
+
+    /**
+     * Indicates if data represents a root node
+     * @return true if root node
+     */
     bool isRoot()  const { return flags & BT_NODE_RAW_ROOT;  }
 
+    /**
+     * Retreives a key value pair from the given index
+     * @param eid[IN] the entry index to retrieve
+     * @param k[OUT] retrieved key
+     * @param v[OUT] retrieved value
+     * @return 0 on success, RC_NO_SUCH_RECORD on out of bounds eid or uninitialized entry
+     */
     RC getPair(int eid, Key& k, Value& v) const {
-      if(eid < MIN(pairCount, ARRAY_SIZE(keys))) {
+      if(eid >= 0 && eid < MIN(pairCount, ARRAY_SIZE(keys))) {
         k = keys[eid];
         v = values[eid];
-        return 0;
+        return k == INVALID_KEY ? RC_NO_SUCH_RECORD : 0;
       }
 
       return RC_NO_SUCH_RECORD;
     }
 
-    // PageId template, i.e. non-leaf
+    /**
+     * Get the PageId of the next page, i.e. the right-most pointer of the node
+     *
+     * Specific version to set the nextPid, where the templated type
+     * of Value IS PageId (i.e. this is a non-leaf node).
+     * Since PageIds are inserted as a pair along with a key value, this
+     * function will find the appropriate location to retrieve the value
+     *
+     * @return returns the PageId on success, INVALID_PID on internal error or uninitialized PageId
+     */
     template <Key, PageId, Key>
     PageId getNextPid() const {
       // last most pid is stored outside of the values array
@@ -91,19 +144,37 @@ class BTRawNode {
         return pairCount < ARRAY_SIZE(keys)-1 ? values[pairCount+1] : nextPid;
       }
 
-      return INVALID_KEY;
+      return INVALID_PID;
     }
 
-    // Non PageId template, i.e. leaf node
+    /**
+     * Get the PageId of the next page.
+     *
+     * Generic version to set the nextPid, where the templated type
+     * of Value is NOT PageId (i.e. this is probably a leaf node).
+     * Only a single PageId can be stored for such nodes
+     *
+     * @return returns PageId
+     */
     PageId getNextPid() const {
       return nextPid;
     }
 
+    /**
+     * Get number of valid keys inserted in node
+     * @return entry count
+     */
     int getKeyCount() const {
       return pairCount;
     }
 
-    // Setters
+    /*************************************/
+    /*************  Setters  *************/
+    /*************************************/
+
+    /**
+     * Mark the node as a root node
+     */
     void setRoot() {
       if(isRoot())
         return;
@@ -113,6 +184,9 @@ class BTRawNode {
       flags &= ~BT_NODE_RAW_LEAF;
     }
 
+    /**
+     * Mark the node as a leaf node
+     */
     void setLeaf() {
       if(isLeaf())
         return;
@@ -122,6 +196,9 @@ class BTRawNode {
       flags |=  BT_NODE_RAW_LEAF;
     }
 
+    /**
+     * Mark the node as a non-leaf node
+     */
     void setNonLeaf() {
       if(!isLeaf())
         return;
@@ -131,7 +208,20 @@ class BTRawNode {
       flags &= ~BT_NODE_RAW_LEAF;
     }
 
+    /**
+     * Insert a new key value pair into the node
+     * @param eid[OUT] the index of the newly inserted pair
+     * @param k[IN] the key to insert
+     * @param v[IN] the value to insert
+     * @return 0 on success, RC_NODE_FULL if no room left in node
+     *
+     * @todo: update function to keep all pairs sorted
+     */
     RC insertPair(int& eid, const Key& k, const Value& v) {
+      // Avoid storing garbage
+      if(k == INVALID_KEY)
+        return 0;
+
       if(pairCount >= ARRAY_SIZE(keys))
         return RC_NODE_FULL;
 
@@ -145,24 +235,53 @@ class BTRawNode {
       return 0;
     }
 
-    // PageId template, i.e. non-leaf
+    /**
+     * Set the PageId of the next page.
+     *
+     * Specific version to set the nextPid, where the templated type
+     * of Value IS PageId (i.e. this is a non-leaf node).
+     * Since PageIds are inserted as a pair along with a key value, this
+     * function will find the appropriate location to save the value
+     *
+     * @param pid[IN] pid to update
+     * @return returns true on success, false on empty node or internal error
+     */
     template <Key, PageId, Key>
     bool setNextPid(const PageId& pid) {
       // sanity check
       if(pairCount >= ARRAY_SIZE(keys) || keys[pairCount] == INVALID_KEY)
         return false;
 
-      if(pairCount < ARRAY_SIZE(keys)-1)
-        values[pairCount] = pid;
-      else
+      // Store pid in the next empty values slot
+      if(pairCount < ARRAY_SIZE(keys)-1) {
+        if(values[pairCount] != pid) {
+          values[pairCount] = pid;
+          flags |= BT_NODE_RAW_DIRTY;
+        }
+      } else if(nextPid != pid) { // if node is full, store pid in this->nextPid
         nextPid = pid;
+        flags |= BT_NODE_RAW_DIRTY;
+      }
 
       return true;
     }
 
-    // Non PageId template, i.e. leaf node
+    /**
+     * Set the PageId of the next page.
+     *
+     * Generic version to set the nextPid, where the templated type
+     * of Value is NOT PageId (i.e. this is probably a leaf node).
+     * Only a single PageId can be stored for such nodes
+     *
+     * @param pid[IN] pid to update
+     * @return returns true on success
+     */
     bool setNextPid(const PageId& pid) {
-      nextPid = pid;
+      if(nextPid != pid) {
+        nextPid = pid;
+        flags |= BT_NODE_RAW_DIRTY;
+      }
+
       return true;
     }
 
