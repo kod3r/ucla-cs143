@@ -13,11 +13,19 @@
 #include "RecordFile.h"
 #include "PageFile.h"
 
+template <typename Key, typename Value, Key MaxKey> class BTRawNode;
+
+typedef BTRawNode<int, RecordId, INT_MAX> BTRawLeaf;
+typedef BTRawNode<int, PageId,   INT_MAX> BTRawNonLeaf;
+
 /**
  * BTLeafNode: The class representing a B+tree leaf node.
  */
 class BTLeafNode {
   public:
+    BTLeafNode();
+    ~BTLeafNode();
+
    /**
     * Insert the (key, rid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.
@@ -97,11 +105,8 @@ class BTLeafNode {
     RC write(PageId pid, PageFile& pf);
 
   private:
-   /**
-    * The main memory buffer for loading the content of the disk page 
-    * that contains the node.
-    */
-    char buffer[PageFile::PAGE_SIZE];
+   BTRawLeaf * const data;
+   PageId dataPid;
 }; 
 
 
@@ -175,11 +180,8 @@ class BTNonLeafNode {
     RC write(PageId pid, PageFile& pf);
 
   private:
-   /**
-    * The main memory buffer for loading the content of the disk page 
-    * that contains the node.
-    */
-    char buffer[PageFile::PAGE_SIZE];
+   BTRawNonLeaf * const data;
+   PageId dataPid;
 }; 
 
 #endif /* BTNODE_H */
