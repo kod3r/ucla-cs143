@@ -19,7 +19,6 @@
 
 #define BT_NODE_RAW_DIRTY     (1<<0)
 #define BT_NODE_RAW_LEAF      (1<<1)
-#define BT_NODE_RAW_ROOT      (1<<2)
 
 static const PageId INVALID_PID = -1;
 
@@ -105,12 +104,6 @@ class BTRawNode {
     bool isLeaf()  const { return flags & BT_NODE_RAW_LEAF;  }
 
     /**
-     * Indicates if data represents a root node
-     * @return true if root node
-     */
-    bool isRoot()  const { return flags & BT_NODE_RAW_ROOT;  }
-
-    /**
      * Retreives a key value pair from the given index
      * @param eid[IN] the entry index to retrieve
      * @param k[OUT] retrieved key
@@ -173,18 +166,6 @@ class BTRawNode {
     /*************************************/
 
     /**
-     * Mark the node as a root node
-     */
-    void setRoot() {
-      if(isRoot())
-        return;
-
-      flags |=  BT_NODE_RAW_DIRTY;
-      flags |=  BT_NODE_RAW_ROOT;
-      flags &= ~BT_NODE_RAW_LEAF;
-    }
-
-    /**
      * Mark the node as a leaf node
      */
     void setLeaf() {
@@ -192,7 +173,6 @@ class BTRawNode {
         return;
 
       flags |=  BT_NODE_RAW_DIRTY;
-      flags &= ~BT_NODE_RAW_ROOT;
       flags |=  BT_NODE_RAW_LEAF;
     }
 
@@ -204,7 +184,6 @@ class BTRawNode {
         return;
 
       flags |=  BT_NODE_RAW_DIRTY;
-      flags &= ~BT_NODE_RAW_ROOT;
       flags &= ~BT_NODE_RAW_LEAF;
     }
 

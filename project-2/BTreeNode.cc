@@ -241,7 +241,7 @@ RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2) {
   int eid;
 
   data->clearAll();
-  data->setRoot();
+  data->setNonLeaf();
 
   if((rc = data->insertPair(eid, key, pid1)) < 0)
     return rc;
