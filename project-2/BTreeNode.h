@@ -204,16 +204,19 @@ class BTRawNode {
 
       // Determine the proper location for this key
       int new_key_index = 0;
-      for(; new_key_index < ARRAY_SIZE(keys); new_key_index++) {
+      for(; new_key_index < ARRAY_SIZE(keys) && new_key_index < pairCount; new_key_index++) {
         if (k < keys[new_key_index])
           break;
       }
 
-      // If the new location isn't right before the end of the array, move everything back an index
-      if (new_key_index < ARRAY_SIZE(keys) - 1)
-        memmove((void*)keys[new_key_index + 1], (void*)keys[new_key_index], sizeof(Key)*(ARRAY_SIZE(keys)-new_key_index));
-      else // Be extra paranoid to avoid segfaults
-        return RC_NODE_FULL;
+      // Are we inserting at the end or in the middle of the node?
+      if(new_key_index < pairCount) {
+        // If the new location isn't right before the end of the array, move everything back an index
+        if (new_key_index < ARRAY_SIZE(keys) - 1)
+          memmove((void*)keys[new_key_index + 1], (void*)keys[new_key_index], sizeof(Key)*(ARRAY_SIZE(keys)-new_key_index));
+        else // Be extra paranoid to avoid segfaults
+          return RC_NODE_FULL;
+      }
 
       keys[new_key_index] = k;
       values[new_key_index] = v;
