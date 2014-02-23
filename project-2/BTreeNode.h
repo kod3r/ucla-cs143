@@ -209,13 +209,11 @@ class BTRawNode {
           break;
       }
 
-      // The earlier check should catch this, but be extra paranoid to avoid segfaults
-      if (new_key_index == ARRAY_SIZE(keys))
-        return RC_NODE_FULL;
-
-      // If the new location isn't the end of the array, move everything back an index
-      if (new_key_index < ARRAY_SIZE(keys))
+      // If the new location isn't right before the end of the array, move everything back an index
+      if (new_key_index < ARRAY_SIZE(keys) - 1)
         memmove((void*)keys[new_key_index + 1], (void*)keys[new_key_index], sizeof(Key)*(ARRAY_SIZE(keys)-new_key_index));
+      else // Be extra paranoid to avoid segfaults
+        return RC_NODE_FULL;
 
       keys[new_key_index] = k;
       values[new_key_index] = v;
