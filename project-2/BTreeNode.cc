@@ -70,7 +70,10 @@ int BTLeafNode::getKeyCount() {
  * @return 0 if successful. Return an error code if the node is full.
  */
 RC BTLeafNode::insert(int key, const RecordId& rid)
-{ return 0; }
+{
+  int eid = 0;
+  return data->insertPair(eid, key, rid);
+}
 
 /*
  * Insert the (key, rid) pair to the node
@@ -203,8 +206,10 @@ int BTNonLeafNode::getKeyCount() {
  * @param pid[IN] the PageId to insert
  * @return 0 if successful. Return an error code if the node is full.
  */
-RC BTNonLeafNode::insert(int key, PageId pid)
-{ return 0; }
+RC BTNonLeafNode::insert(int key, PageId pid) { 
+  int eid = 0;
+  return data->insertPair(eid, key, pid);
+}
 
 /*
  * Insert the (key, pid) pair to the node
