@@ -193,8 +193,6 @@ class BTRawNode {
      * @param k[IN] the key to insert
      * @param v[IN] the value to insert
      * @return 0 on success, RC_NODE_FULL if no room left in node
-     *
-     * @todo: update function to keep all pairs sorted
      */
     RC insertPair(int& eid, const Key& k, const Value& v) {
       // Avoid storing garbage
@@ -204,8 +202,19 @@ class BTRawNode {
       if(pairCount >= ARRAY_SIZE(keys))
         return RC_NODE_FULL;
 
-      keys[pairCount] = k;
-      values[pairCount] = v;
+      // Determine the proper location for this key
+      int new_key_index = 0;
+      for(; new_key_index < ARRAY_SIZE(keys); new_key_index++) {
+        if (k < keys[new_key_index])
+          break;
+      }
+
+      // If the new location isn't the end of the array, move everything back an index
+      if (new_key_index < ARRAY_SIZE(keys))
+        memmove((void*)keys[new_key_index + 1], (void*)keys[new_key_index], sizeof(Key)*(ARRAY_SIZE(keys)-new_key_index));
+
+      keys[new_key_index] = k;
+      values[new_key_index] = v;
 
       pairCount++;
       flags |= BT_NODE_RAW_DIRTY;
