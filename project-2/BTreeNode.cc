@@ -12,6 +12,18 @@ BTLeafNode::BTLeafNode()
 }
 
 /**
+ * Constructor for creating a BTLeafNode with raw data already in memory.
+ * A copy of node is made, thus the caller must manage its memory.
+ * Data *MUST* be of leaf type, otherwise behavior is undefined.
+ * @param node[IN] raw data in memory to use
+ */
+BTLeafNode::BTLeafNode(const BTRawLeaf& node)
+: data(new BTRawLeaf(node)), dataPid(INVALID_PID)
+{
+  // Done!
+}
+
+/**
  * Free up memory when destroyed
  */
 BTLeafNode::~BTLeafNode() {
@@ -147,6 +159,18 @@ BTNonLeafNode::BTNonLeafNode()
 : data(new BTRawNonLeaf), dataPid(INVALID_PID)
 {
   data->setNonLeaf();
+}
+
+/**
+ * Constructor for creating a BTNonLeafNode with raw data already in memory.
+ * A copy of node is made, thus the caller must manage its memory.
+ * Data *MUST* be of non-leaf type, otherwise behavior is undefined.
+ * @param node[IN] raw data in memory to use
+ */
+BTNonLeafNode::BTNonLeafNode(const BTRawNonLeaf& node)
+: data(new BTRawNonLeaf(node)), dataPid(INVALID_PID)
+{
+  // Done!
 }
 
 /**

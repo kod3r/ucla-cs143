@@ -38,6 +38,14 @@ class BTRawNode {
     }
 
     /**
+     * Copy constructor
+     * @param node[IN] data to copy
+     */
+    BTRawNode(const BTRawNode& node) {
+      memcpy(this, &node, sizeof(this));
+    }
+
+    /**
      * Clears all internal flags and invalidates any stored keys
      */
     void clearAll() {
@@ -319,6 +327,14 @@ class BTLeafNode {
     BTLeafNode();
     ~BTLeafNode();
 
+    /**
+     * Constructor for creating a BTLeafNode with raw data already in memory.
+     * A copy of node is made, thus the caller must manage its memory.
+     * Data *MUST* be of leaf type, otherwise behavior is undefined.
+     * @param node[IN] raw data in memory to use
+     */
+    BTLeafNode(const BTRawLeaf& node);
+
    /**
     * Insert the (key, rid) pair to the node.
     * Remember that all keys inside a B+tree node should be kept sorted.
@@ -410,6 +426,14 @@ class BTNonLeafNode {
   public:
     BTNonLeafNode();
     ~BTNonLeafNode();
+
+    /**
+     * Constructor for creating a BTNonLeafNode with raw data already in memory.
+     * A copy of node is made, thus the caller must manage its memory.
+     * Data *MUST* be of non-leaf type, otherwise behavior is undefined.
+     * @param node[IN] raw data in memory to use
+     */
+    BTNonLeafNode(const BTRawNonLeaf& node);
 
    /**
     * Insert a (key, pid) pair to the node.
