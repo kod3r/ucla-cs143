@@ -6,16 +6,10 @@ using namespace std;
  * Default constructor: initialize member variables
  */
 BTLeafNode::BTLeafNode()
-: data(new BTRawLeaf), dataPid(INVALID_PID)
+: dataPid(INVALID_PID)
 {
-  data->setLeaf();
-}
-
-/**
- * Free up memory when destroyed
- */
-BTLeafNode::~BTLeafNode() {
-  delete data;
+  data.clearAll();
+  data.setLeaf();
 }
 
 /*
@@ -25,9 +19,9 @@ BTLeafNode::~BTLeafNode() {
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::read(PageId pid, const PageFile& pf) {
-  RC rc = data->read(pid, pf);
+  RC rc = data.read(pid, pf);
   dataPid = rc < 0 ? INVALID_PID : pid;
-  return data->isLeaf() ? rc : RC_WRONG_NODE_TYPE;
+  return data.isLeaf() ? rc : RC_WRONG_NODE_TYPE;
 }
 
 /*
@@ -45,11 +39,11 @@ RC BTLeafNode::write(PageId pid, PageFile& pf) {
   RC rc;
 
   // If we are writing to the same page and no data has changed, avoid the extra write
-  if(dataPid == pid && !data->isDirty())
+  if(dataPid == pid && !data.isDirty())
     return 0;
 
   // Update associate the data with the (possibly new) pid
-  if((rc = data->write(pid, pf)) == 0)
+  if((rc = data.write(pid, pf)) == 0)
     dataPid = pid;
 
   return rc;
@@ -60,7 +54,7 @@ RC BTLeafNode::write(PageId pid, PageFile& pf) {
  * @return the number of keys in the node
  */
 int BTLeafNode::getKeyCount() {
-  return data->getKeyCount();
+  return data.getKeyCount();
 }
 
 /*
@@ -72,7 +66,7 @@ int BTLeafNode::getKeyCount() {
 RC BTLeafNode::insert(int key, const RecordId& rid)
 {
   int eid = 0;
-  return data->insertPair(eid, key, rid);
+  return data.insertPair(eid, key, rid);
 }
 
 /*
@@ -101,8 +95,8 @@ RC BTLeafNode::locate(int searchKey, int& eid) {
   int key;
   RecordId rid;
 
-  for(eid = 0; eid < data->getKeyCount(); eid++) {
-    data->getPair(eid, key, rid);
+  for(eid = 0; eid < data.getKeyCount(); eid++) {
+    data.getPair(eid, key, rid);
     if(key >= searchKey)
       return 0;
   }
@@ -119,7 +113,7 @@ RC BTLeafNode::locate(int searchKey, int& eid) {
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid) {
-  return data->getPair(eid, key, rid);
+  return data.getPair(eid, key, rid);
 }
 
 /*
@@ -127,7 +121,7 @@ RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid) {
  * @return the PageId of the next sibling node 
  */
 PageId BTLeafNode::getNextNodePtr() {
-  return data->getNextPid();
+  return data.getNextPid();
 }
 
 /*
@@ -136,7 +130,7 @@ PageId BTLeafNode::getNextNodePtr() {
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTLeafNode::setNextNodePtr(PageId pid) {
-  data->setNextPid(pid);
+  data.setNextPid(pid);
   return 0;
 }
 
@@ -144,16 +138,10 @@ RC BTLeafNode::setNextNodePtr(PageId pid) {
  * Default constructor: initialize member variables
  */
 BTNonLeafNode::BTNonLeafNode()
-: data(new BTRawNonLeaf), dataPid(INVALID_PID)
+: dataPid(INVALID_PID)
 {
-  data->setNonLeaf();
-}
-
-/**
- * Free up memory when destroyed
- */
-BTNonLeafNode::~BTNonLeafNode() {
-  delete data;
+  data.clearAll();
+  data.setNonLeaf();
 }
 
 /*
@@ -163,9 +151,9 @@ BTNonLeafNode::~BTNonLeafNode() {
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTNonLeafNode::read(PageId pid, const PageFile& pf) {
-  RC rc = data->read(pid, pf);
+  RC rc = data.read(pid, pf);
   dataPid = rc < 0 ? INVALID_PID : pid;
-  return data->isLeaf() ? RC_WRONG_NODE_TYPE : rc;
+  return data.isLeaf() ? RC_WRONG_NODE_TYPE : rc;
 }
     
 /*
@@ -183,11 +171,11 @@ RC BTNonLeafNode::write(PageId pid, PageFile& pf) {
   RC rc;
 
   // If we are writing to the same page and no data has changed, avoid the extra write
-  if(dataPid == pid && !data->isDirty())
+  if(dataPid == pid && !data.isDirty())
     return 0;
 
   // Update associate the data with the (possibly new) pid
-  if((rc = data->write(pid, pf)) == 0)
+  if((rc = data.write(pid, pf)) == 0)
     dataPid = pid;
 
   return rc;
@@ -198,7 +186,7 @@ RC BTNonLeafNode::write(PageId pid, PageFile& pf) {
  * @return the number of keys in the node
  */
 int BTNonLeafNode::getKeyCount() {
-  return data->getKeyCount();
+  return data.getKeyCount();
 }
 
 
@@ -210,7 +198,7 @@ int BTNonLeafNode::getKeyCount() {
  */
 RC BTNonLeafNode::insert(int key, PageId pid) { 
   int eid = 0;
-  return data->insertPair(eid, key, pid);
+  return data.insertPair(eid, key, pid);
 }
 
 /*
@@ -247,12 +235,12 @@ RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2) {
   RC rc;
   int eid;
 
-  data->clearAll();
-  data->setNonLeaf();
+  data.clearAll();
+  data.setNonLeaf();
 
-  if((rc = data->insertPair(eid, key, pid1)) < 0)
+  if((rc = data.insertPair(eid, key, pid1)) < 0)
     return rc;
 
-  data->setNextPid(pid2);
+  data.setNextPid(pid2);
   return 0;
 }

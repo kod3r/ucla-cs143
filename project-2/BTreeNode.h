@@ -329,7 +329,6 @@ typedef BTRawNode<int, PageId,   INT_MAX> BTRawNonLeaf;
 class BTLeafNode {
   public:
     BTLeafNode();
-    ~BTLeafNode();
 
     /**
      * Constructor for creating a BTLeafNode with raw data already in memory.
@@ -339,7 +338,7 @@ class BTLeafNode {
      * @param pid[IN] PageId with which the data should be associated
      */
     template<typename k, typename v, k m>
-    BTLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(new BTRawLeaf(node)), dataPid(pid)
+    BTLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(node), dataPid(pid)
     {}
 
    /**
@@ -421,7 +420,7 @@ class BTLeafNode {
     RC write(PageId pid, PageFile& pf);
 
   private:
-   BTRawLeaf * const data;
+   BTRawLeaf data;
    PageId dataPid;
 }; 
 
@@ -432,7 +431,6 @@ class BTLeafNode {
 class BTNonLeafNode {
   public:
     BTNonLeafNode();
-    ~BTNonLeafNode();
 
     /**
      * Constructor for creating a BTNonLeafNode with raw data already in memory.
@@ -442,7 +440,7 @@ class BTNonLeafNode {
      * @param pid[IN] PageId with which the data should be associated
      */
     template <typename k, typename v, k m>
-    BTNonLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(new BTRawNonLeaf(node)), dataPid(pid)
+    BTNonLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(node), dataPid(pid)
     {}
 
    /**
@@ -510,7 +508,7 @@ class BTNonLeafNode {
     RC write(PageId pid, PageFile& pf);
 
   private:
-   BTRawNonLeaf * const data;
+   BTRawNonLeaf data;
    PageId dataPid;
 }; 
 
