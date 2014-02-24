@@ -22,6 +22,9 @@
 
 static const PageId INVALID_PID = -1;
 
+// @todo: move this error definition to Bruinbase.h
+const int RC_WRONG_NODE_TYPE     = -1015;
+
 /**
  * A simple glorified struct for holding raw BTNode data.
  * Wrapper class helps maintain the clean/dirty state, prevents

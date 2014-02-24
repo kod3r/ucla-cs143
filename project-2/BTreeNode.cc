@@ -27,7 +27,7 @@ BTLeafNode::~BTLeafNode() {
 RC BTLeafNode::read(PageId pid, const PageFile& pf) {
   RC rc = data->read(pid, pf);
   dataPid = rc < 0 ? INVALID_PID : pid;
-  return rc;
+  return data->isLeaf() ? rc : RC_WRONG_NODE_TYPE;
 }
 
 /*
@@ -163,7 +163,9 @@ BTNonLeafNode::~BTNonLeafNode() {
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTNonLeafNode::read(PageId pid, const PageFile& pf) {
-  return data->read(pid, pf);
+  RC rc = data->read(pid, pf);
+  dataPid = rc < 0 ? INVALID_PID : pid;
+  return data->isLeaf() ? RC_WRONG_NODE_TYPE : rc;
 }
     
 /*
