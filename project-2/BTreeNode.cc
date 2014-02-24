@@ -53,7 +53,7 @@ RC BTLeafNode::write(PageId pid, PageFile& pf) {
  * Return the number of keys stored in the node.
  * @return the number of keys in the node
  */
-int BTLeafNode::getKeyCount() {
+int BTLeafNode::getKeyCount() const {
   return data.getKeyCount();
 }
 
@@ -91,7 +91,7 @@ RC BTLeafNode::insertAndSplit(int key, const RecordId& rid,
  * @param eid[OUT] the entry number that contains a key larger than or equalty to searchKey
  * @return 0 if successful. Return an error code if there is an error.
  */
-RC BTLeafNode::locate(int searchKey, int& eid) {
+RC BTLeafNode::locate(int searchKey, int& eid) const {
   int key;
   RecordId rid;
 
@@ -112,7 +112,7 @@ RC BTLeafNode::locate(int searchKey, int& eid) {
  * @param rid[OUT] the RecordId from the entry
  * @return 0 if successful. Return an error code if there is an error.
  */
-RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid) {
+RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid) const {
   return data.getPair(eid, key, rid);
 }
 
@@ -120,7 +120,7 @@ RC BTLeafNode::readEntry(int eid, int& key, RecordId& rid) {
  * Return the pid of the next slibling node.
  * @return the PageId of the next sibling node 
  */
-PageId BTLeafNode::getNextNodePtr() {
+PageId BTLeafNode::getNextNodePtr() const {
   return data.getNextPid();
 }
 
@@ -185,7 +185,7 @@ RC BTNonLeafNode::write(PageId pid, PageFile& pf) {
  * Return the number of keys stored in the node.
  * @return the number of keys in the node
  */
-int BTNonLeafNode::getKeyCount() {
+int BTNonLeafNode::getKeyCount() const {
   return data.getKeyCount();
 }
 
@@ -221,7 +221,7 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
  * @param pid[OUT] the pointer to the child node to follow.
  * @return 0 if successful. Return an error code if there is an error.
  */
-RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid)
+RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid) const
 { return 0; }
 
 /*

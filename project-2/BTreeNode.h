@@ -372,7 +372,7 @@ class BTLeafNode {
     *                 than or equalty to searchKey.
     * @return 0 if successful. Return an error code if there is an error.
     */
-    RC locate(int searchKey, int& eid);
+    RC locate(int searchKey, int& eid) const;
 
    /**
     * Read the (key, rid) pair from the eid entry.
@@ -381,13 +381,13 @@ class BTLeafNode {
     * @param rid[OUT] the RecordId from the slot
     * @return 0 if successful. Return an error code if there is an error.
     */
-    RC readEntry(int eid, int& key, RecordId& rid);
+    RC readEntry(int eid, int& key, RecordId& rid) const;
 
    /**
     * Return the pid of the next slibling node.
     * @return the PageId of the next sibling node 
     */
-    PageId getNextNodePtr();
+    PageId getNextNodePtr() const;
 
 
    /**
@@ -401,7 +401,7 @@ class BTLeafNode {
     * Return the number of keys stored in the node.
     * @return the number of keys in the node
     */
-    int getKeyCount();
+    int getKeyCount() const;
  
    /**
     * Read the content of the node from the page pid in the PageFile pf.
@@ -474,7 +474,7 @@ class BTNonLeafNode {
     * @param pid[OUT] the pointer to the child node to follow.
     * @return 0 if successful. Return an error code if there is an error.
     */
-    RC locateChildPtr(int searchKey, PageId& pid);
+    RC locateChildPtr(int searchKey, PageId& pid) const;
 
    /**
     * Initialize the root node with (pid1, key, pid2).
@@ -489,7 +489,7 @@ class BTNonLeafNode {
     * Return the number of keys stored in the node.
     * @return the number of keys in the node
     */
-    int getKeyCount();
+    int getKeyCount() const;
 
    /**
     * Read the content of the node from the page pid in the PageFile pf.
