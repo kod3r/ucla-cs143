@@ -315,9 +315,12 @@ class BTRawNode {
     Key     keys[DEGREE - 1];
     PageId  nextPid;
     unsigned short pairCount; // Cache the number of useful entries
-    char    flags;
 
     char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short) - sizeof(char)];
+
+    // Flags should always be the last byte of the data so
+    // that the flags of any BTRawNode will always be aligned
+    char    flags;
 };
 
 typedef BTRawNode<int, RecordId, INT_MAX> BTRawLeaf;
