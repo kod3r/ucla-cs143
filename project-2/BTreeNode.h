@@ -41,7 +41,8 @@ class BTRawNode {
      * Copy constructor
      * @param node[IN] data to copy
      */
-    BTRawNode(const BTRawNode& node) {
+    template <typename k2, typename v2, k2 m2>
+    BTRawNode(const BTRawNode<k2, v2, m2>& node) {
       memcpy(this, &node, sizeof(this));
     }
 
@@ -333,7 +334,9 @@ class BTLeafNode {
      * Data *MUST* be of leaf type, otherwise behavior is undefined.
      * @param node[IN] raw data in memory to use
      */
-    BTLeafNode(const BTRawLeaf& node);
+    template<typename k, typename v, k m>
+    BTLeafNode(const BTRawNode<k, v, m>& node) : data(new BTRawLeaf(node)), dataPid(INVALID_PID)
+    {}
 
    /**
     * Insert the (key, rid) pair to the node.
@@ -433,7 +436,9 @@ class BTNonLeafNode {
      * Data *MUST* be of non-leaf type, otherwise behavior is undefined.
      * @param node[IN] raw data in memory to use
      */
-    BTNonLeafNode(const BTRawNonLeaf& node);
+    template <typename k, typename v, k m>
+    BTNonLeafNode(const BTRawNode<k, v, m>& node) : data(new BTRawNonLeaf(node)), dataPid(INVALID_PID)
+    {}
 
    /**
     * Insert a (key, pid) pair to the node.
