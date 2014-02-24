@@ -333,9 +333,10 @@ class BTLeafNode {
      * A copy of node is made, thus the caller must manage its memory.
      * Data *MUST* be of leaf type, otherwise behavior is undefined.
      * @param node[IN] raw data in memory to use
+     * @param pid[IN] PageId with which the data should be associated
      */
     template<typename k, typename v, k m>
-    BTLeafNode(const BTRawNode<k, v, m>& node) : data(new BTRawLeaf(node)), dataPid(INVALID_PID)
+    BTLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(new BTRawLeaf(node)), dataPid(pid)
     {}
 
    /**
@@ -435,9 +436,10 @@ class BTNonLeafNode {
      * A copy of node is made, thus the caller must manage its memory.
      * Data *MUST* be of non-leaf type, otherwise behavior is undefined.
      * @param node[IN] raw data in memory to use
+     * @param pid[IN] PageId with which the data should be associated
      */
     template <typename k, typename v, k m>
-    BTNonLeafNode(const BTRawNode<k, v, m>& node) : data(new BTRawNonLeaf(node)), dataPid(INVALID_PID)
+    BTNonLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(new BTRawNonLeaf(node)), dataPid(pid)
     {}
 
    /**
