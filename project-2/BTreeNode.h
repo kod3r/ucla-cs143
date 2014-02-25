@@ -20,7 +20,8 @@
 #define BT_NODE_RAW_DIRTY     (1<<0)
 #define BT_NODE_RAW_LEAF      (1<<1)
 
-static const PageId INVALID_PID = -1;
+const PageId INVALID_PID = -1;
+const int    INVALID_KEY = INT_MIN;
 
 // @todo: move this error definition to Bruinbase.h
 const int RC_WRONG_NODE_TYPE     = -1015;
@@ -323,8 +324,8 @@ class BTRawNode {
     char    flags;
 };
 
-typedef BTRawNode<int, RecordId, INT_MAX> BTRawLeaf;
-typedef BTRawNode<int, PageId,   INT_MAX> BTRawNonLeaf;
+typedef BTRawNode<int, RecordId, INVALID_KEY> BTRawLeaf;
+typedef BTRawNode<int, PageId,   INVALID_KEY> BTRawNonLeaf;
 
 /**
  * BTLeafNode: The class representing a B+tree leaf node.
