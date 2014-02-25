@@ -161,6 +161,17 @@ class BTRawNode {
       return pairCount;
     }
 
+    /**
+     * Get the first (lowest) key in the node.
+     * @return the key|-1 if non defined
+     */
+    Key getFirstKey() const {
+      if (pairCount > 0)
+        return key[0];
+      else
+        return -1;
+    }
+
     /*************************************/
     /*************  Setters  *************/
     /*************************************/
@@ -203,11 +214,7 @@ class BTRawNode {
         return RC_NODE_FULL;
 
       // Determine the proper location for this key
-      int new_key_index = 0;
-      for(; new_key_index < ARRAY_SIZE(keys) && new_key_index < pairCount; new_key_index++) {
-        if (k < keys[new_key_index])
-          break;
-      }
+      int new_key_index = findIndexOfNewItem(k);
 
       // Are we inserting at the end or in the middle of the node?
       if(new_key_index < pairCount) {
@@ -226,6 +233,71 @@ class BTRawNode {
 
       eid = pairCount;
       return 0;
+    }
+
+    /**
+     * Insert a new key and value into the node, splitting appropriately.
+     * @param key The key of the item to insert
+     * @param value The value of the item to insert
+     * @param sibling The sibling to insert any overflow items into on split
+     * @param siblingKey[OUT] The key of the first item in the sibling
+     */
+    RC insertPairAndSplit(const Key& key, const Value& value, BTLeafNode& sibling, Key& siblingKey) {
+     int pivot_location = findPivotIndexForSplit(pairCount);
+     int new_item_index = findIndexOfNewItem(key);
+
+     /**
+      * We have three cases to handle.
+      * 1. The new key we're adding is in this node.
+      * 2. The new item is the pivot point, and will be the first item in the sibling.
+      * 3. The new item is in the sibling, but is not the first key.
+      */
+
+      // This should handle (2) and (3) above.
+      if (pivot_location <= new_item_index) {
+        // Insert this item
+        sibling.insertPair(key, value);
+
+        // Now insert the rest
+        for (int x = pivot_location; x < pairCount; x++) {
+          sibling.insertPair(keys[x], values[x]);
+          keys[x] = INVALID_KEY;
+          values[x] = INVALID_KEY;
+        }
+        // Reset the new pair count
+        pairCount = pivot_location;
+      } else { // Otherwise, this new item is in the old list
+        for (int x = pivot_location - 1; x < pairCount; x++) { 
+          sibling.insertPair(keys[x], values[x]);
+          keys[x] = INVALID_KEY;
+          values[x] = INVALID_KEY;
+        }
+          pairCount = pivot_location - 1;
+      }
+      siblingKey = sibling.getFirstKey();
+      return 0;
+    }
+
+    /**
+     * Determine the pivot point for the current node. This takes into account the
+     * additional item we're adding that's causing the split.
+     */
+    int findPivotIndexForSplit() {
+      return (pairCount+1)/2;
+    }
+
+    /**
+     * Determine the index that a supposed new key would hold. This could return
+     * a value larger than the keys array.
+     * @param key The potential key
+     */
+    int findIndexOfNewItem(const Key& key) {
+      int new_position = 0;
+      for (; new_position < pairCount; new_position++) {
+        if (key < keys[new_position])
+          break;
+      }
+      return new_position;
     }
 
     /**
