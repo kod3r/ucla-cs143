@@ -181,5 +181,146 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) const
  * @return 0 on success, RC_INSERT_NEEDS_SPLIT if a sibling node was created, or another RC error
  */
 RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const RecordId& rid, PageId& siblingPid, int& siblingFirstKey) {
-  return 0;
+  RC rc;
+  PageId nextPid;
+
+  // Dynamically allocate and free to avoid cluttering the stack during recursive calls
+  BTRawNonLeaf  *rawNode        = NULL;
+  BTLeafNode    *leaf           = NULL;
+  BTLeafNode    *leafSibling    = NULL;
+  BTNonLeafNode *nonLeaf        = NULL;
+  BTNonLeafNode *nonLeafSibling = NULL;
+
+  if(! (rawNode = new BTRawNonLeaf) ) {
+    rc = RC_OUT_OF_MEMORY;
+    goto exit;
+  }
+
+  if((rc = rawNode->read(nodePid, pf)) < 0) {
+    goto exit;
+  }
+
+  // Found a leaf, insert directly!
+  if(rawNode->isLeaf()) {
+    if(! (leaf = new BTLeafNode(*rawNode, nodePid)) ) {
+      rc = RC_OUT_OF_MEMORY;
+      goto exit;
+    }
+
+    rc = leaf->insert(key, rid);
+
+    // Save the data on success, otherwise bail on unknown errors
+    if(rc == 0) {
+      leaf->write(nodePid, pf);
+      goto exit;
+    } else if (rc != RC_NODE_FULL) {
+      goto exit;
+    }
+
+    // Node is full, split!
+    if(! (leafSibling = new BTLeafNode) ) {
+      rc = RC_OUT_OF_MEMORY;
+      goto exit;
+    }
+
+    if((rc = leaf->insertAndSplit(key, rid, *leafSibling, siblingFirstKey)) < 0) {
+      goto exit;
+    }
+
+    // Save the leaf and its sibling on successful split
+    if((rc = leaf->write(nodePid, pf)) < 0) {
+      goto exit;
+    }
+
+    siblingPid = pf.endPid();
+    if((rc = leafSibling->write(siblingPid, pf)) < 0) {
+      goto exit;
+    }
+
+    // Indicate to caller to create the appropriate parent node
+    rc = RC_INSERT_NEEDS_SPLIT;
+    goto exit;
+  }
+
+  // We have a non-leaf node, keep traversing
+  if(! (nonLeaf = new BTNonLeafNode(*rawNode, nodePid)) < 0) {
+    rc = RC_OUT_OF_MEMORY;
+    goto exit;
+  }
+
+  if((rc = nonLeaf->locateChildPtr(key, nextPid)) < 0) {
+    goto exit;
+  }
+
+  // Delete the in-memory buffers to lower out stack footprint while recursing
+  // It is possible that we may have to refetch the nodes to update them if a split
+  // occured down the tree, but it is very unlikely that we will have to cache
+  // every single non-leaf node along the way down the stack. Thus we accept the possible
+  // penalty of incurring an extra disk IO in the event that the node is no longer in the cache
+  delete rawNode;
+  rawNode = NULL;
+
+  delete nonLeaf;
+  nonLeaf = NULL;
+
+  rc = insertRecursively(nextPid, key, rid, siblingPid, siblingFirstKey);
+  if(rc == 0 || rc != RC_INSERT_NEEDS_SPLIT) {
+    goto exit; // Success or unknown error
+  }
+
+  // Lower level split, reload and update the current node!
+  if(! (nonLeaf = new BTNonLeafNode) ) {
+    rc = RC_OUT_OF_MEMORY;
+    goto exit;
+  }
+
+  if((rc = nonLeaf->read(nodePid, pf)) < 0) {
+    goto exit;
+  }
+
+  rc = nonLeaf->insert(siblingFirstKey, siblingPid);
+
+  // Save on success or bail on error
+  if(rc == 0) {
+    rc = nonLeaf->write(nodePid, pf);
+    goto exit;
+  } else if(rc != RC_NODE_FULL) {
+    goto exit;
+  }
+
+  // Current node is full and needs a split!
+  if(! (nonLeafSibling = new BTNonLeafNode)) {
+    rc = RC_OUT_OF_MEMORY;
+    goto exit;
+  }
+
+  // Copy the sibling key to avoid potential issues with using the value
+  // from a non-const parameter passed by reference
+  int siblingKeyCopy = siblingFirstKey;
+  if((rc = nonLeaf->insertAndSplit(key, siblingKeyCopy, *nonLeafSibling, siblingFirstKey)) < 0) {
+    goto exit;
+  }
+
+  // Split successfull, save the node and its sibling
+  if((rc = nonLeaf->write(nodePid, pf)) < 0) {
+    goto exit;
+  }
+
+  siblingPid = pf.endPid();
+  if((rc = nonLeafSibling->write(siblingPid, pf)) < 0) {
+    goto exit;
+  }
+
+  // Indicate to caller to create the appropriate parent node
+  rc = RC_INSERT_NEEDS_SPLIT;
+  goto exit;
+
+exit:
+  delete rawNode;
+  delete leaf;
+  delete leafSibling;
+  delete nonLeaf;
+  delete nonLeafSibling;
+
+  return rc;
 }
