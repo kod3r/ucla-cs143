@@ -20,7 +20,11 @@
 #define BT_NODE_RAW_DIRTY     (1<<0)
 #define BT_NODE_RAW_LEAF      (1<<1)
 
-static const PageId INVALID_PID = -1;
+const PageId INVALID_PID = -1;
+const int    INVALID_KEY = INT_MIN;
+
+// @todo: move this error definition to Bruinbase.h
+const int RC_WRONG_NODE_TYPE     = -1015;
 
 /**
  * A simple glorified struct for holding raw BTNode data.
@@ -35,6 +39,15 @@ class BTRawNode {
      */
     BTRawNode() {
       clearAll();
+    }
+
+    /**
+     * Copy constructor
+     * @param node[IN] data to copy
+     */
+    template <typename k2, typename v2, k2 m2>
+    BTRawNode(const BTRawNode<k2, v2, m2>& node) {
+      memcpy(this, &node, sizeof(this));
     }
 
     /**
@@ -375,13 +388,16 @@ class BTRawNode {
     Key     keys[DEGREE - 1];
     PageId  nextPid;
     unsigned short pairCount; // Cache the number of useful entries
-    char    flags;
 
     char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short) - sizeof(char)];
+
+    // Flags should always be the last byte of the data so
+    // that the flags of any BTRawNode will always be aligned
+    char    flags;
 };
 
-typedef BTRawNode<int, RecordId, INT_MAX> BTRawLeaf;
-typedef BTRawNode<int, PageId,   INT_MAX> BTRawNonLeaf;
+typedef BTRawNode<int, RecordId, INVALID_KEY> BTRawLeaf;
+typedef BTRawNode<int, PageId,   INVALID_KEY> BTRawNonLeaf;
 
 /**
  * BTLeafNode: The class representing a B+tree leaf node.
@@ -389,7 +405,17 @@ typedef BTRawNode<int, PageId,   INT_MAX> BTRawNonLeaf;
 class BTLeafNode {
   public:
     BTLeafNode();
-    ~BTLeafNode();
+
+    /**
+     * Constructor for creating a BTLeafNode with raw data already in memory.
+     * A copy of node is made, thus the caller must manage its memory.
+     * Data *MUST* be of leaf type, otherwise behavior is undefined.
+     * @param node[IN] raw data in memory to use
+     * @param pid[IN] PageId with which the data should be associated
+     */
+    template<typename k, typename v, k m>
+    BTLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(node), dataPid(pid)
+    {}
 
    /**
     * Insert the (key, rid) pair to the node.
@@ -422,7 +448,7 @@ class BTLeafNode {
     *                 than or equalty to searchKey.
     * @return 0 if successful. Return an error code if there is an error.
     */
-    RC locate(int searchKey, int& eid);
+    RC locate(int searchKey, int& eid) const;
 
    /**
     * Read the (key, rid) pair from the eid entry.
@@ -431,13 +457,13 @@ class BTLeafNode {
     * @param rid[OUT] the RecordId from the slot
     * @return 0 if successful. Return an error code if there is an error.
     */
-    RC readEntry(int eid, int& key, RecordId& rid);
+    RC readEntry(int eid, int& key, RecordId& rid) const;
 
    /**
     * Return the pid of the next slibling node.
     * @return the PageId of the next sibling node 
     */
-    PageId getNextNodePtr();
+    PageId getNextNodePtr() const;
 
 
    /**
@@ -451,7 +477,7 @@ class BTLeafNode {
     * Return the number of keys stored in the node.
     * @return the number of keys in the node
     */
-    int getKeyCount();
+    int getKeyCount() const;
  
    /**
     * Read the content of the node from the page pid in the PageFile pf.
@@ -470,7 +496,7 @@ class BTLeafNode {
     RC write(PageId pid, PageFile& pf);
 
   private:
-   BTRawLeaf * const data;
+   BTRawLeaf data;
    PageId dataPid;
 }; 
 
@@ -481,7 +507,17 @@ class BTLeafNode {
 class BTNonLeafNode {
   public:
     BTNonLeafNode();
-    ~BTNonLeafNode();
+
+    /**
+     * Constructor for creating a BTNonLeafNode with raw data already in memory.
+     * A copy of node is made, thus the caller must manage its memory.
+     * Data *MUST* be of non-leaf type, otherwise behavior is undefined.
+     * @param node[IN] raw data in memory to use
+     * @param pid[IN] PageId with which the data should be associated
+     */
+    template <typename k, typename v, k m>
+    BTNonLeafNode(const BTRawNode<k, v, m>& node, const PageId& pid) : data(node), dataPid(pid)
+    {}
 
    /**
     * Insert a (key, pid) pair to the node.
@@ -514,7 +550,7 @@ class BTNonLeafNode {
     * @param pid[OUT] the pointer to the child node to follow.
     * @return 0 if successful. Return an error code if there is an error.
     */
-    RC locateChildPtr(int searchKey, PageId& pid);
+    RC locateChildPtr(int searchKey, PageId& pid) const;
 
    /**
     * Initialize the root node with (pid1, key, pid2).
@@ -529,7 +565,7 @@ class BTNonLeafNode {
     * Return the number of keys stored in the node.
     * @return the number of keys in the node
     */
-    int getKeyCount();
+    int getKeyCount() const;
 
    /**
     * Read the content of the node from the page pid in the PageFile pf.
@@ -548,7 +584,7 @@ class BTNonLeafNode {
     RC write(PageId pid, PageFile& pf);
 
   private:
-   BTRawNonLeaf * const data;
+   BTRawNonLeaf data;
    PageId dataPid;
 }; 
 

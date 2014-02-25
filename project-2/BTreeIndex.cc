@@ -10,6 +10,8 @@
 #include "BTreeIndex.h"
 #include "BTreeNode.h"
 
+static const PageId ROOT_PID = 0;
+
 using namespace std;
 
 /*
@@ -17,7 +19,7 @@ using namespace std;
  */
 BTreeIndex::BTreeIndex()
 {
-    rootPid = -1;
+    rootPid = INVALID_PID;
 }
 
 /*
@@ -29,7 +31,9 @@ BTreeIndex::BTreeIndex()
  */
 RC BTreeIndex::open(const string& indexname, char mode)
 {
-    return 0;
+  RC rc = pf.open(indexname, mode);
+  rootPid = rc < 0 ? INVALID_PID : ROOT_PID;
+  return rc;
 }
 
 /*
@@ -38,7 +42,8 @@ RC BTreeIndex::open(const string& indexname, char mode)
  */
 RC BTreeIndex::close()
 {
-    return 0;
+  rootPid = INVALID_PID;
+  return pf.close();
 }
 
 /*
@@ -49,7 +54,32 @@ RC BTreeIndex::close()
  */
 RC BTreeIndex::insert(int key, const RecordId& rid)
 {
-    return 0;
+  RC     rc;
+  PageId siblingPid      = INVALID_PID;
+  int    siblingFirstKey = INVALID_KEY;
+
+  rc = insertRecursively(rootPid, key, rid, siblingPid, siblingFirstKey);
+
+  // Bail on success or unknown error
+  if(rc == 0 || rc != RC_INSERT_NEEDS_SPLIT)
+    return rc;
+
+  // The root node needs a split!
+  PageId        oldRootPid = pf.endPid();
+  BTRawNonLeaf  oldRoot; // Since we are only reading and writing back data, node leafness doesn't matter
+  BTNonLeafNode newRoot;
+
+  // First we save the old root elsewhere on disk,
+  // so the new root can be saved as the first page
+  if((rc = oldRoot.read(rootPid, pf)) < 0)
+    return rc;
+
+  if((rc = oldRoot.write(oldRootPid, pf)) < 0)
+    return rc;
+
+  // Next we initialize the new root and save it on disk
+  newRoot.initializeRoot(oldRootPid, siblingFirstKey, siblingPid);
+  return newRoot.write(rootPid, pf);
 }
 
 /*
@@ -71,9 +101,28 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
  *                    with the key value.
  * @return error code. 0 if no error.
  */
-RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
+RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) const
 {
-    return 0;
+  RC rc = 0;
+  cursor.pid = rootPid;
+  BTRawNonLeaf rawNode; // Used to read in data and determine its type
+
+  while(true) {
+    if((rc = rawNode.read(cursor.pid, pf)) < 0)
+      return rc;
+
+    // Found a leaf, try to pull the key out
+    if(rawNode.isLeaf()) {
+      BTLeafNode leaf(rawNode, cursor.pid);
+      return leaf.locate(searchKey, cursor.eid);
+    } else { // Another non-leaf, keep traversing
+      BTNonLeafNode node(rawNode, cursor.pid);
+      if((rc = node.locateChildPtr(searchKey, cursor.pid)) < 0)
+        return rc;
+    }
+  }
+
+  return rc;
 }
 
 /*
@@ -84,7 +133,53 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor)
  * @param rid[OUT] the RecordId stored at the index cursor location.
  * @return error code. 0 if no error
  */
-RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid)
+RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) const
 {
-    return 0;
+  RC rc = 0;
+  BTLeafNode node;
+
+  while(true) {
+    // Bail on load errors
+    if((rc = node.read(cursor.pid, pf)) < 0) {
+      return rc == RC_WRONG_NODE_TYPE ? RC_INVALID_CURSOR : rc;
+    }
+
+    rc = node.readEntry(cursor.eid, key, rid);
+
+    // Exit on success or bail on unknown errors
+    if(rc == 0) {
+      cursor.eid++; // Increment eid so it points to the next entry
+      return 0;
+    } else if(rc != RC_NO_SUCH_RECORD) {
+      return RC_INVALID_CURSOR;
+    }
+
+    // Record doesn't exist in the current node, fetch the next!
+    cursor.pid = node.getNextNodePtr();
+    cursor.eid = 0;
+
+    // Bail if no more nodes
+    // otherwise loop again to read the value
+    if(cursor.pid == INVALID_PID)
+      return RC_END_OF_TREE;
+  }
+
+  return rc;
+}
+
+/**
+ * Traverses the B+tree recursively and creates any appropriate nodes along the way.
+ * If an insert succeeds without the need for a split, the data will be written on
+ * disk. If a split is needed, both the current and sibling nodes will be written.
+ * It is the caller's duty to create the proper parent node to hold both.
+ * @param nodePid[IN] the PageId of the node at which to start traversal
+ * @param key[IN] key to insert
+ * @param rid[IN] RecordId to insert
+ * @param siblingPid[OUT] PageId of a newly created sibling which needs insertion
+ * @param siblingFirstKey[OUT] the key from the newly created sibling which should be inserted
+          into the parent node
+ * @return 0 on success, RC_INSERT_NEEDS_SPLIT if a sibling node was created, or another RC error
+ */
+RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const RecordId& rid, PageId& siblingPid, int& siblingFirstKey) {
+  return 0;
 }
