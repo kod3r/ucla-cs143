@@ -183,6 +183,7 @@ RC BTreeIndex::readForward(IndexCursor& cursor, int& key, RecordId& rid) const
 RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const RecordId& rid, PageId& siblingPid, int& siblingFirstKey) {
   RC rc;
   PageId nextPid;
+  int siblingKeyCopy; // see use below
 
   // Dynamically allocate and free to avoid cluttering the stack during recursive calls
   BTRawNonLeaf  *rawNode        = NULL;
@@ -296,7 +297,7 @@ RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const Rec
 
   // Copy the sibling key to avoid potential issues with using the value
   // from a non-const parameter passed by reference
-  int siblingKeyCopy = siblingFirstKey;
+  siblingKeyCopy = siblingFirstKey;
   if((rc = nonLeaf->insertAndSplit(key, siblingKeyCopy, *nonLeafSibling, siblingFirstKey)) < 0) {
     goto exit;
   }
