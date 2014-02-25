@@ -13,6 +13,9 @@
 #include "Bruinbase.h"
 #include "PageFile.h"
 #include "RecordFile.h"
+
+// @todo: move this error definition to Bruinbase.h
+const int RC_INSERT_NEEDS_SPLIT  = -1016;
              
 /**
  * The data structure to point to a particular entry at a b+tree leaf node.
@@ -78,7 +81,7 @@ class BTreeIndex {
    * with the key value
    * @return error code. 0 if no error.
    */
-  RC locate(int searchKey, IndexCursor& cursor);
+  RC locate(int searchKey, IndexCursor& cursor) const;
 
   /**
    * Read the (key, rid) pair at the location specified by the index cursor,
@@ -88,7 +91,7 @@ class BTreeIndex {
    * @param rid[OUT] the RecordId stored at the index cursor location
    * @return error code. 0 if no error
    */
-  RC readForward(IndexCursor& cursor, int& key, RecordId& rid);
+  RC readForward(IndexCursor& cursor, int& key, RecordId& rid) const;
   
  private:
   PageFile pf;         /// the PageFile used to store the actual b+tree in disk
@@ -99,6 +102,21 @@ class BTreeIndex {
   /// this class is destructed. Make sure to store the values of the two 
   /// variables in disk, so that they can be reconstructed when the index
   /// is opened again later.
+
+  /**
+   * Traverses the B+tree recursively and creates any appropriate nodes along the way.
+   * If an insert succeeds without the need for a split, the data will be written on
+   * disk. If a split is needed, both the current and sibling nodes will be written.
+   * It is the caller's duty to create the proper parent node to hold both.
+   * @param nodePid[IN] the PageId of the node at which to start traversal
+   * @param key[IN] key to insert
+   * @param rid[IN] RecordId to insert
+   * @param siblingPid[OUT] PageId of a newly created sibling which needs insertion
+   * @param siblingFirstKey[OUT] the key from the newly created sibling which should be inserted
+            into the parent node
+   * @return 0 on success, RC_INSERT_NEEDS_SPLIT if a sibling node was created, or another RC error
+   */
+  RC insertRecursively(const PageId& nodePid, const int key, const RecordId& rid, PageId& siblingPid, int& siblingFirstKey);
 };
 
 #endif /* BTREEINDEX_H */
