@@ -73,6 +73,7 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
  * Insert the (key, rid) pair to the node
  * and split the node half and half with sibling.
  * The first key of the sibling node is returned in siblingKey.
+ * Caller must save both nodes to disk and set their next PageIds properly
  * @param key[IN] the key to insert.
  * @param rid[IN] the RecordId to insert.
  * @param sibling[IN] the sibling node to split with. This node MUST be EMPTY when this function is called.
@@ -81,7 +82,9 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
  */
 RC BTLeafNode::insertAndSplit(int key, const RecordId& rid, 
                               BTLeafNode& sibling, int& siblingKey)
-{ return 0; }
+{
+  return data.insertPairAndSplit(key, rid, sibling.data, siblingKey);
+}
 
 /*
  * Find the entry whose key value is larger than or equal to searchKey
@@ -205,6 +208,7 @@ RC BTNonLeafNode::insert(int key, PageId pid) {
  * Insert the (key, pid) pair to the node
  * and split the node half and half with sibling.
  * The middle key after the split is returned in midKey.
+ * Caller must save both nodes to disk and set their next PageIds properly
  * @param key[IN] the key to insert
  * @param pid[IN] the PageId to insert
  * @param sibling[IN] the sibling node to split with. This node MUST be empty when this function is called.
@@ -212,7 +216,9 @@ RC BTNonLeafNode::insert(int key, PageId pid) {
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, int& midKey)
-{ return 0; }
+{
+  return data.insertPairAndSplit(key, pid, sibling.data, midKey);
+}
 
 /*
  * Given the searchKey, find the child-node pointer to follow and

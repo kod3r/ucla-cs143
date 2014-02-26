@@ -58,11 +58,7 @@ class BTRawNode {
       nextPid   = INVALID_PID;
       pairCount = 0;
 
-      for(int i = 0; i < ARRAY_SIZE(keys); i++) {
-        keys[i] = INVALID_KEY;
-      }
-
-      memset(values, '\0', sizeof(values));
+      invalidateStartingAtIndex(0);
       memset(padding, '\0', sizeof(padding));
     }
 
@@ -179,17 +175,6 @@ class BTRawNode {
       return pairCount;
     }
 
-    /**
-     * Get the first (lowest) key in the node.
-     * @return the key|-1 if non defined
-     */
-    Key getFirstKey() const {
-      if (pairCount > 0)
-        return key[0];
-      else
-        return -1;
-    }
-
     /*************************************/
     /*************  Setters  *************/
     /*************************************/
@@ -224,6 +209,8 @@ class BTRawNode {
      * @return 0 on success, RC_NODE_FULL if no room left in node
      */
     RC insertPair(int& eid, const Key& k, const Value& v) {
+      const PageId oldPid = getNextPid();
+
       // Avoid storing garbage
       if(k == INVALID_KEY)
         return 0;
@@ -254,72 +241,77 @@ class BTRawNode {
 
       eid = pairCount++;
       flags |= BT_NODE_RAW_DIRTY;
+      setNextPid(oldPid);
       return 0;
     }
 
     /**
      * Insert a new key and value into the node, splitting appropriately.
+     * Note: caller is responsible for writing both nodes to disk and
+     * setting the nextPid pointers appropriately.
      * @param key The key of the item to insert
      * @param value The value of the item to insert
      * @param sibling The sibling to insert any overflow items into on split
+     *        sibling must be different than *this. Behavior is undefined if sibling == *this
      * @param siblingKey[OUT] The key of the first item in the sibling
      */
-    RC insertPairAndSplit(const Key& key, const Value& value, BTLeafNode& sibling, Key& siblingKey) {
-     int pivot_location = findPivotIndexForSplit(pairCount);
-     int new_item_index = findIndexOfNewItem(key);
+    RC insertPairAndSplit(const Key& key, const Value& value, BTRawNode<Key, Value, INVALID_KEY>& sibling, Key& siblingKey) {
+      RC     rc;
+      int    eid;
+      PageId siblingPid;
+      Value  placeHolder;
 
-     /**
-      * We have three cases to handle.
-      * 1. The new key we're adding is in this node.
-      * 2. The new item is the pivot point, and will be the first item in the sibling.
-      * 3. The new item is in the sibling, but is not the first key.
-      */
+      // Variables to hold the overflow pair
+      Key   lastKey;
+      Value lastValue;
 
-      // This should handle (2) and (3) above.
-      if (pivot_location <= new_item_index) {
-        // Insert this item
-        sibling.insertPair(key, value);
+      // Pivot is the middle of the array, favoring a (possibly) larger portion for the sibling
+      const int lastItem  = MIN(pairCount, ARRAY_SIZE(keys));
+      const int pivot     = lastItem / 2;
+      const int newItem   = indexForInsert(key);
+      const int numToMove = lastItem - pivot;
 
-        // Now insert the rest
-        for (int x = pivot_location; x < pairCount; x++) {
-          sibling.insertPair(keys[x], values[x]);
-          keys[x] = INVALID_KEY;
-          values[x] = INVALID_KEY;
+      // If the new value will NOT be the last value in the array
+      // remove and save the last item, then insert the current value
+      if(newItem < lastItem) {
+        if((rc = this->getPair(lastItem-1, lastKey, lastValue)) < 0) {
+          return rc;
         }
-        // Reset the new pair count
-        pairCount = pivot_location;
-      } else { // Otherwise, this new item is in the old list
-        for (int x = pivot_location - 1; x < pairCount; x++) { 
-          sibling.insertPair(keys[x], values[x]);
-          keys[x] = INVALID_KEY;
-          values[x] = INVALID_KEY;
+
+        pairCount--;
+        if((rc = this->insertPair(eid, key, value)) < 0) {
+          return rc;
         }
-          pairCount = pivot_location - 1;
+      } else { // Current value will end up being last, save it as such
+        lastKey = key;
+        lastValue = value;
       }
-      siblingKey = sibling.getFirstKey();
+
+      // Copy the node type (and that its dirty) to the sibling
+      this->flags |= BT_NODE_RAW_DIRTY;
+
+      sibling.clearAll();
+      sibling.flags = this->flags;
+
+      // Split the nodes
+      memmove(sibling.keys,   this->keys   + pivot, numToMove*sizeof(Key)  );
+      memmove(sibling.values, this->values + pivot, numToMove*sizeof(Value));
+
+      sibling.pairCount = numToMove;
+
+      // Insert the overflow node into the sibling
+      if((rc = sibling.insertPair(eid, lastKey, lastValue)) < 0) {
+        return rc;
+      }
+
+      sibling.setNextPid(this->getNextPid());
+      this->invalidateStartingAtIndex(pivot);
+
+      if((rc = sibling.getPair(0, siblingKey, placeHolder)) < 0) {
+        return rc;
+      }
+
       return 0;
-    }
-
-    /**
-     * Determine the pivot point for the current node. This takes into account the
-     * additional item we're adding that's causing the split.
-     */
-    int findPivotIndexForSplit() {
-      return (pairCount+1)/2;
-    }
-
-    /**
-     * Determine the index that a supposed new key would hold. This could return
-     * a value larger than the keys array.
-     * @param key The potential key
-     */
-    int findIndexOfNewItem(const Key& key) {
-      int new_position = 0;
-      for (; new_position < pairCount; new_position++) {
-        if (key < keys[new_position])
-          break;
-      }
-      return new_position;
     }
 
     /**
@@ -372,7 +364,7 @@ class BTRawNode {
       return true;
     }
 
-  private:
+  protected:
     /**
      * Determine the index that a supposed new key would hold. This could return
      * a value larger than the keys array.
@@ -389,7 +381,30 @@ class BTRawNode {
       return new_position;
     }
 
-  protected:
+    /**
+     * Invalidates key-value pairs starting at a given index, as well as nextPid
+     * @param index[IN] invalidate keys after this index, inclusive
+     */
+    void invalidateStartingAtIndex(unsigned index) {
+      const int oldCount = pairCount;
+
+      if(index < pairCount && index < ARRAY_SIZE(keys))
+        pairCount = index;
+      else
+        return;
+
+      nextPid = INVALID_PID;
+      for(int i = index; i < MIN(oldCount, ARRAY_SIZE(keys)); i++) {
+        keys[i] = INVALID_KEY;
+      }
+
+      memset(values+index, '\0', sizeof(Value) * (oldCount - pairCount));
+
+      if(!isLeaf())
+        setNextPid(INVALID_PID);
+    }
+
+  private:
     /**
      * A node of degree N will have N PageId pointers and N-1 keys, each being a word long.
      * An additional "word" can be used to set some internal flags such as the type of the node.
