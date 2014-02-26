@@ -12,6 +12,7 @@
 #include <fstream>
 #include "Bruinbase.h"
 #include "SqlEngine.h"
+#include "BTreeIndex.h"
 
 using namespace std;
 
@@ -133,6 +134,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   // Status variables
   RC          rc = 0;
   RC          rfCloseStatus;
+  RC          indexCloseStatus;
 
   // File handles
   ifstream    lfs;
@@ -146,11 +148,17 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   string      value;
   RecordId    rid;
 
+  // Index handle
+  BTreeIndex  dbIndex;
+
   try {
     lfs.open(loadfile.c_str(), std::ifstream::in);
   } catch(...) {
     return RC_FILE_OPEN_FAILED;
   }
+
+  if(index && (rc = dbIndex.open((table + ".index").c_str(), 'w')) < 0)
+    return rc;
 
   if((rc = rf.open((table + ".tbl").c_str(), 'w')) < 0)
     return rc;
@@ -163,6 +171,9 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 
     if((rc = rf.append(key, value, rid)) < 0)
       break;
+
+    if(index && (rc = dbIndex.insert(key, rid)) < 0)
+      break;
   }
 
   try {
@@ -173,6 +184,9 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
 
   if((rfCloseStatus = rf.close()) < 0)
     return rfCloseStatus;
+
+  if(index && (indexCloseStatus = dbIndex.close()) < 0)
+    return indexCloseStatus;
 
   return rc;
 }
