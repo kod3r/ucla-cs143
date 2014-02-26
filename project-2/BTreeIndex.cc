@@ -31,9 +31,22 @@ BTreeIndex::BTreeIndex()
  */
 RC BTreeIndex::open(const string& indexname, char mode)
 {
-  RC rc = pf.open(indexname, mode);
-  rootPid = rc < 0 ? INVALID_PID : ROOT_PID;
-  return rc;
+  RC rc;
+
+  if((rc = pf.open(indexname, mode)) < 0) {
+    rootPid = INVALID_PID;
+    return rc;
+  }
+
+  rootPid = ROOT_PID;
+
+  // If the index has not been initialized, write an empty root (leaf) node
+  if(pf.endPid() <= 0) {
+    BTLeafNode leaf;
+    return leaf.write(rootPid, pf);
+  }
+
+  return 0;
 }
 
 /*
@@ -212,7 +225,7 @@ RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const Rec
 
     // Save the data on success, otherwise bail on unknown errors
     if(rc == 0) {
-      leaf->write(nodePid, pf);
+      rc = leaf->write(nodePid, pf);
       goto exit;
     } else if (rc != RC_NODE_FULL) {
       goto exit;

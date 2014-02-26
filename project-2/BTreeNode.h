@@ -61,6 +61,9 @@ class BTRawNode {
       for(int i = 0; i < ARRAY_SIZE(keys); i++) {
         keys[i] = INVALID_KEY;
       }
+
+      memset(values, '\0', sizeof(values));
+      memset(padding, '\0', sizeof(padding));
     }
 
     /**
@@ -71,6 +74,8 @@ class BTRawNode {
      * @return 0 if successful. Return an error code if there is an error.
      */
     RC read(PageId pid, const PageFile& pf) {
+      clearAll();
+
       // By definition the data is clean until written again
       // regardless of the dirty bit upon the last disk write
       RC rc = pf.read(pid, this);
