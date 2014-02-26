@@ -222,7 +222,22 @@ RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, in
  * @return 0 if successful. Return an error code if there is an error.
  */
 RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid) const
-{ return 0; }
+{
+  RC rc;
+  int key;
+
+  for(int eid = 0; eid < data.getKeyCount(); eid++) {
+    // Bail on errors
+    if((rc = data.getPair(eid, key, pid)) < 0)
+      return rc;
+
+    if(searchKey < key)
+      return 0;
+  }
+
+  pid = data.getNextPid();
+  return 0;
+}
 
 /*
  * Initialize the root node with (pid1, key, pid2).
