@@ -227,24 +227,28 @@ class BTRawNode {
         return RC_NODE_FULL;
 
       // Determine the proper location for this key
-      int new_key_index = findIndexOfNewItem(k);
+      int new_key_index = indexForInsert(k);
 
       // Are we inserting at the end or in the middle of the node?
+      // If the new location isn't right after the last pair, move the entires foward an index
       if(new_key_index < pairCount) {
-        // If the new location isn't right before the end of the array, move everything back an index
-        if (new_key_index < ARRAY_SIZE(keys) - 1)
-          memmove((void*)keys[new_key_index + 1], (void*)keys[new_key_index], sizeof(Key)*(ARRAY_SIZE(keys)-new_key_index));
-        else // Be extra paranoid to avoid segfaults
+        unsigned keysToMove   = MIN(pairCount, ARRAY_SIZE(keys)  ) - MIN(new_key_index, ARRAY_SIZE(keys)  );
+        unsigned valuesToMove = MIN(pairCount, ARRAY_SIZE(values)) - MIN(new_key_index, ARRAY_SIZE(values));
+
+        // Make sure we don't try to move more than the array handles!
+        if(keysToMove < ARRAY_SIZE(keys) && valuesToMove < ARRAY_SIZE(values)) {
+          memmove(keys   + new_key_index+1, keys   + new_key_index, keysToMove   * sizeof(Key)  );
+          memmove(values + new_key_index+1, values + new_key_index, valuesToMove * sizeof(Value));
+        } else { // Graceful sanity check
           return RC_NODE_FULL;
+        }
       }
 
       keys[new_key_index] = k;
       values[new_key_index] = v;
 
-      pairCount++;
+      eid = pairCount++;
       flags |= BT_NODE_RAW_DIRTY;
-
-      eid = pairCount;
       return 0;
     }
 
@@ -361,6 +365,23 @@ class BTRawNode {
       }
 
       return true;
+    }
+
+  private:
+    /**
+     * Determine the index that a supposed new key would hold. This could return
+     * a value larger than the keys array.
+     * @param key The potential key
+     * @return the index where the key should be inserted. If this value is greater
+     *         than ARRAY_SIZE(keys) the key should be inserted in a new node.
+     */
+    int indexForInsert(const Key& key) const {
+      int new_position = 0;
+      for (; new_position < MIN(pairCount, ARRAY_SIZE(keys)); new_position++) {
+        if (key < keys[new_position])
+          break;
+      }
+      return new_position;
     }
 
   protected:
