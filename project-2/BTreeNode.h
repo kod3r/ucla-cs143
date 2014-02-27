@@ -135,32 +135,7 @@ class BTRawNode {
     }
 
     /**
-     * Get the PageId of the next page, i.e. the right-most pointer of the node
-     *
-     * Specific version to set the nextPid, where the templated type
-     * of Value IS PageId (i.e. this is a non-leaf node).
-     * Since PageIds are inserted as a pair along with a key value, this
-     * function will find the appropriate location to retrieve the value
-     *
-     * @return returns the PageId on success, INVALID_PID on internal error or uninitialized PageId
-     */
-    template <Key, PageId, Key>
-    PageId getNextPid() const {
-      // last most pid is stored outside of the values array
-      if(pairCount < ARRAY_SIZE(keys) && keys[pairCount] != INVALID_KEY) { // sanity check
-        return pairCount < ARRAY_SIZE(keys)-1 ? values[pairCount+1] : nextPid;
-      }
-
-      return INVALID_PID;
-    }
-
-    /**
      * Get the PageId of the next page.
-     *
-     * Generic version to set the nextPid, where the templated type
-     * of Value is NOT PageId (i.e. this is probably a leaf node).
-     * Only a single PageId can be stored for such nodes
-     *
      * @return returns PageId
      */
     PageId getNextPid() const {
@@ -208,7 +183,7 @@ class BTRawNode {
      * @param v[IN] the value to insert
      * @return 0 on success, RC_NODE_FULL if no room left in node
      */
-    RC insertPair(int& eid, const Key& k, const Value& v) {
+    RC insertPair(const Key& k, const Value& v) {
       const PageId oldPid = getNextPid();
 
       // Avoid storing garbage
@@ -239,7 +214,7 @@ class BTRawNode {
       keys[new_key_index] = k;
       values[new_key_index] = v;
 
-      eid = pairCount++;
+      pairCount++;
       flags |= BT_NODE_RAW_DIRTY;
       setNextPid(oldPid);
       return 0;
@@ -257,7 +232,6 @@ class BTRawNode {
      */
     RC insertPairAndSplit(const Key& key, const Value& value, BTRawNode<Key, Value, INVALID_KEY>& sibling, Key& siblingKey) {
       RC     rc;
-      int    eid;
       PageId siblingPid;
       Value  placeHolder;
 
@@ -279,7 +253,7 @@ class BTRawNode {
         }
 
         pairCount--;
-        if((rc = this->insertPair(eid, key, value)) < 0) {
+        if((rc = this->insertPair(key, value)) < 0) {
           return rc;
         }
       } else { // Current value will end up being last, save it as such
@@ -300,7 +274,7 @@ class BTRawNode {
       sibling.pairCount = numToMove;
 
       // Insert the overflow node into the sibling
-      if((rc = sibling.insertPair(eid, lastKey, lastValue)) < 0) {
+      if((rc = sibling.insertPair(lastKey, lastValue)) < 0) {
         return rc;
       }
 
@@ -316,42 +290,6 @@ class BTRawNode {
 
     /**
      * Set the PageId of the next page.
-     *
-     * Specific version to set the nextPid, where the templated type
-     * of Value IS PageId (i.e. this is a non-leaf node).
-     * Since PageIds are inserted as a pair along with a key value, this
-     * function will find the appropriate location to save the value
-     *
-     * @param pid[IN] pid to update
-     * @return returns true on success, false on empty node or internal error
-     */
-    template <Key, PageId, Key>
-    bool setNextPid(const PageId& pid) {
-      // sanity check
-      if(pairCount >= ARRAY_SIZE(keys) || keys[pairCount] == INVALID_KEY)
-        return false;
-
-      // Store pid in the next empty values slot
-      if(pairCount < ARRAY_SIZE(keys)-1) {
-        if(values[pairCount] != pid) {
-          values[pairCount] = pid;
-          flags |= BT_NODE_RAW_DIRTY;
-        }
-      } else if(nextPid != pid) { // if node is full, store pid in this->nextPid
-        nextPid = pid;
-        flags |= BT_NODE_RAW_DIRTY;
-      }
-
-      return true;
-    }
-
-    /**
-     * Set the PageId of the next page.
-     *
-     * Generic version to set the nextPid, where the templated type
-     * of Value is NOT PageId (i.e. this is probably a leaf node).
-     * Only a single PageId can be stored for such nodes
-     *
      * @param pid[IN] pid to update
      * @return returns true on success
      */
@@ -362,23 +300,6 @@ class BTRawNode {
       }
 
       return true;
-    }
-
-  protected:
-    /**
-     * Determine the index that a supposed new key would hold. This could return
-     * a value larger than the keys array.
-     * @param key The potential key
-     * @return the index where the key should be inserted. If this value is greater
-     *         than ARRAY_SIZE(keys) the key should be inserted in a new node.
-     */
-    int indexForInsert(const Key& key) const {
-      int new_position = 0;
-      for (; new_position < MIN(pairCount, ARRAY_SIZE(keys)); new_position++) {
-        if (key < keys[new_position])
-          break;
-      }
-      return new_position;
     }
 
     /**
@@ -402,6 +323,32 @@ class BTRawNode {
 
       if(!isLeaf())
         setNextPid(INVALID_PID);
+    }
+
+    /**
+     * Determines if key to be inserted will be at the end of the node
+     * @param key[IN] key to potentially insert
+     * @return true if key will be inserted at the end, false if otherwise
+     */
+    bool willBeInsertedAtEnd(const Key& key) const {
+      return indexForInsert(key) == MIN(pairCount, ARRAY_SIZE(keys));
+    }
+
+  protected:
+    /**
+     * Determine the index that a supposed new key would hold. This could return
+     * a value larger than the keys array.
+     * @param key The potential key
+     * @return the index where the key should be inserted. If this value is greater
+     *         than ARRAY_SIZE(keys) the key should be inserted in a new node.
+     */
+    int indexForInsert(const Key& key) const {
+      int new_position = 0;
+      for (; new_position < MIN(pairCount, ARRAY_SIZE(keys)); new_position++) {
+        if (key < keys[new_position])
+          break;
+      }
+      return new_position;
     }
 
   private:

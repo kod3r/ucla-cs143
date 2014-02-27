@@ -65,8 +65,7 @@ int BTLeafNode::getKeyCount() const {
  */
 RC BTLeafNode::insert(int key, const RecordId& rid)
 {
-  int eid = 0;
-  return data.insertPair(eid, key, rid);
+  return data.insertPair(key, rid);
 }
 
 /*
@@ -200,8 +199,18 @@ int BTNonLeafNode::getKeyCount() const {
  * @return 0 if successful. Return an error code if the node is full.
  */
 RC BTNonLeafNode::insert(int key, PageId pid) { 
-  int eid = 0;
-  return data.insertPair(eid, key, pid);
+  RC rc;
+
+  // If the key is inserted in the middle no need to update nextPid
+  if(!data.willBeInsertedAtEnd(key))
+    return data.insertPair(key, pid);
+
+  // Otherwise swap nextPid with pid to insert to keep the tree valid
+  if((rc = data.insertPair(key, data.getNextPid())) < 0)
+    return rc;
+
+  data.setNextPid(pid);
+  return 0;
 }
 
 /*
@@ -217,7 +226,17 @@ RC BTNonLeafNode::insert(int key, PageId pid) {
  */
 RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, int& midKey)
 {
-  return data.insertPairAndSplit(key, pid, sibling.data, midKey);
+  RC rc;
+
+  // Make sure we properly update the nextPid if the new node will go at the end
+  if(!data.willBeInsertedAtEnd(key))
+    return data.insertPairAndSplit(key, pid, sibling.data, midKey);
+
+  if((rc = data.insertPairAndSplit(key, data.getNextPid(), sibling.data, midKey)) < 0)
+    return rc;
+
+  sibling.data.setNextPid(pid);
+  return 0;
 }
 
 /*
@@ -254,12 +273,11 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid) const
  */
 RC BTNonLeafNode::initializeRoot(PageId pid1, int key, PageId pid2) {
   RC rc;
-  int eid;
 
   data.clearAll();
   data.setNonLeaf();
 
-  if((rc = data.insertPair(eid, key, pid1)) < 0)
+  if((rc = data.insertPair(key, pid1)) < 0)
     return rc;
 
   data.setNextPid(pid2);
