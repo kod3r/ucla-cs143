@@ -78,7 +78,7 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
     return rc;
 
   // The root node needs a split!
-  PageId        oldRootPid = pf.endPid();
+  const PageId  oldRootPid = pf.endPid();
   BTRawNonLeaf  oldRoot; // Since we are only reading and writing back data, node leafness doesn't matter
   BTNonLeafNode newRoot;
 
@@ -242,12 +242,13 @@ RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const Rec
     }
 
     // Save the leaf and its sibling on successful split
-    if((rc = leaf->write(nodePid, pf)) < 0) {
+    siblingPid = pf.endPid();
+    if((rc = leafSibling->write(siblingPid, pf)) < 0) {
       goto exit;
     }
 
-    siblingPid = pf.endPid();
-    if((rc = leafSibling->write(siblingPid, pf)) < 0) {
+    leaf->setNextNodePtr(siblingPid);
+    if((rc = leaf->write(nodePid, pf)) < 0) {
       goto exit;
     }
 
@@ -257,7 +258,7 @@ RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const Rec
   }
 
   // We have a non-leaf node, keep traversing
-  if(! (nonLeaf = new BTNonLeafNode(*rawNode, nodePid)) < 0) {
+  if(! (nonLeaf = new BTNonLeafNode(*rawNode, nodePid)) ) {
     rc = RC_OUT_OF_MEMORY;
     goto exit;
   }

@@ -47,7 +47,8 @@ class BTRawNode {
      */
     template <typename k2, typename v2, k2 m2>
     BTRawNode(const BTRawNode<k2, v2, m2>& node) {
-      memcpy(this, &node, sizeof(this));
+      memcpy(this, &node, sizeof(*this));
+      countValidKeys(); // Recount keys since data was reinterpreted
     }
 
     /**
@@ -78,9 +79,7 @@ class BTRawNode {
       flags &= ~BT_NODE_RAW_DIRTY;
 
       // Recalculate the number of valid entries just in case
-      pairCount = 0;
-      while(pairCount < ARRAY_SIZE(keys) && keys[pairCount] != INVALID_KEY)
-        pairCount++;
+      countValidKeys();
 
       return rc;
     }
@@ -307,6 +306,9 @@ class BTRawNode {
      * @param index[IN] invalidate keys after this index, inclusive
      */
     void invalidateStartingAtIndex(unsigned index) {
+      if(index == 0)
+       pairCount = ARRAY_SIZE(keys);
+
       const int oldCount = pairCount;
 
       if(index < pairCount && index < ARRAY_SIZE(keys))
@@ -351,6 +353,15 @@ class BTRawNode {
       return new_position;
     }
 
+    /**
+     * Resets pairCount based on the number of valid keys
+     */
+    void countValidKeys() {
+      pairCount = 0;
+      while(pairCount < ARRAY_SIZE(keys) && keys[pairCount] != INVALID_KEY)
+        pairCount++;
+    }
+
   private:
     /**
      * A node of degree N will have N PageId pointers and N-1 keys, each being a word long.
@@ -365,7 +376,7 @@ class BTRawNode {
      * can fit inside a page. Since both leaf and non-leaf nodes will *always* have one PageId
      * we hard code this value within the structure (nextPid).
      */
-    static const int DEGREE = PageFile::PAGE_SIZE / (2 * MAX(sizeof(int), MAX(sizeof(PageId), MAX(sizeof(Key), sizeof(Value)))));
+    static const unsigned DEGREE = PageFile::PAGE_SIZE / (2 * MAX(sizeof(int), MAX(sizeof(PageId), MAX(sizeof(Key), sizeof(Value)))));
 
     /**
      * Note: if we used an int for flags, it is possible to not need any padding
@@ -374,14 +385,15 @@ class BTRawNode {
      */
     Value   values[DEGREE - 1];
     Key     keys[DEGREE - 1];
+
+    //              Max structure size          sizeof(keys) + sizeof(values)           nextPid        pairCount         flags
+    char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short) - sizeof(short)];
+
+    // Shared entries should always be after the padding so that
+    // they are always aligned between different node types
     PageId  nextPid;
     unsigned short pairCount; // Cache the number of useful entries
-
-    char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short) - sizeof(char)];
-
-    // Flags should always be the last byte of the data so
-    // that the flags of any BTRawNode will always be aligned
-    char    flags;
+    unsigned short flags;
 };
 
 typedef BTRawNode<int, RecordId, INVALID_KEY> BTRawLeaf;
