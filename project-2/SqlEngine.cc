@@ -157,7 +157,7 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
     return RC_FILE_OPEN_FAILED;
   }
 
-  if(index && (rc = dbIndex.open((table + ".index").c_str(), 'w')) < 0)
+  if(index && (rc = dbIndex.open((table + ".idx").c_str(), 'w')) < 0)
     return rc;
 
   if((rc = rf.open((table + ".tbl").c_str(), 'w')) < 0)
