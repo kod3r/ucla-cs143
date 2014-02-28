@@ -345,12 +345,33 @@ class BTRawNode {
      *         than ARRAY_SIZE(keys) the key should be inserted in a new node.
      */
     int indexForInsert(const Key& key) const {
-      int new_position = 0;
-      for (; new_position < MIN(pairCount, ARRAY_SIZE(keys)); new_position++) {
-        if (key < keys[new_position])
+      int lo = 0;
+      int hi = MIN(pairCount, ARRAY_SIZE(keys)) - 1;
+      int cur = lo;
+
+      while(lo < hi) {
+        if(key < keys[lo]) {
+          cur = lo;
           break;
+        } else if(key >= keys[hi]) {
+          cur = hi;
+          break;
+        } else {
+          cur = (hi + lo) / 2;
+        }
+
+        if(key == keys[cur])
+          break;
+        else if(key < keys[cur])
+          hi = --cur;
+        else // key > keys[cur]
+          lo = ++cur;
       }
-      return new_position;
+
+      if(keys[cur] != INVALID_KEY && key >= keys[cur])
+        cur++;
+
+      return cur;
     }
 
     /**
