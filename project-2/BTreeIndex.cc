@@ -138,6 +138,35 @@ RC BTreeIndex::locate(int searchKey, IndexCursor& cursor) const
   return rc;
 }
 
+/**
+ * Locates the very first entry in the B+tree
+ * @param cursor[OUT] the cursor pointing to the first entry
+ * @return 0 on success, or an error code
+ */
+RC BTreeIndex::locateFirstEntry(IndexCursor& cursor) const {
+  RC rc = 0;
+  BTRawNonLeaf rawNode; // Used to read in data and dtermine its type
+
+  cursor.pid = rootPid;
+  cursor.eid = 0;
+
+  while(true) {
+    if((rc = rawNode.read(cursor.pid, pf)) < 0)
+      return rc;
+
+    if(rawNode.isLeaf()) { // Found a leaf, return its pid or RC_END_OF_TREE if it is empty
+      BTLeafNode leaf(rawNode, cursor.pid);
+      return leaf.getKeyCount() > 0 ? 0 : RC_END_OF_TREE;
+    } else { // Another node, grab its first page pointer
+      int key; // Placeholder
+      if((rc = rawNode.getPair(0, key, cursor.pid)) < 0)
+        return rc;
+    }
+  }
+
+  return rc;
+}
+
 /*
  * Read the (key, rid) pair at the location specified by the index cursor,
  * and move foward the cursor to the next entry.

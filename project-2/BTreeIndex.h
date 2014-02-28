@@ -85,6 +85,13 @@ class BTreeIndex {
   RC locate(int searchKey, IndexCursor& cursor) const;
 
   /**
+   * Locates the very first entry in the B+tree
+   * @param cursor[OUT] the cursor pointing to the first entry
+   * @return 0 on success, or an error code
+   */
+  RC locateFirstEntry(IndexCursor& cursor) const;
+
+  /**
    * Read the (key, rid) pair at the location specified by the index cursor,
    * and move foward the cursor to the next entry.
    * @param cursor[IN/OUT] the cursor pointing to an leaf-node index entry in the b+tree
