@@ -211,29 +211,48 @@ RC SqlEngine::load(const string& table, const string& loadfile, bool index)
   // Index handle
   BTreeIndex  dbIndex;
 
+  // Keep track of what line is being parsed to indicate possible errors
+  unsigned parseLine;
+
   try {
     lfs.open(loadfile.c_str(), std::ifstream::in);
   } catch(...) {
     return RC_FILE_OPEN_FAILED;
   }
 
-  if(index && (rc = dbIndex.open((table + ".idx").c_str(), 'w')) < 0)
+  if(index && (rc = dbIndex.open((table + ".idx").c_str(), 'w')) < 0) {
+    fprintf(stderr, "Error opening index for table %s\n", table.c_str());
     return rc;
+  }
 
-  if((rc = rf.open((table + ".tbl").c_str(), 'w')) < 0)
+  if((rc = rf.open((table + ".tbl").c_str(), 'w')) < 0) {
+    fprintf(stderr, "Error record file for table %s\n", table.c_str());
     return rc;
+  }
 
+  parseLine = 0;
   while(!lfs.eof()) {
     getline(lfs, line);
 
-    if((rc = parseLoadLine(line, key, value)) < 0)
+    if(line == "")
       break;
 
-    if((rc = rf.append(key, value, rid)) < 0)
+    if((rc = parseLoadLine(line, key, value)) < 0) {
+      fprintf(stderr, "Error while parsing from loadfile %s at line %i\n", loadfile.c_str(), parseLine);
       break;
+    }
 
-    if(index && (rc = dbIndex.insert(key, rid)) < 0)
+    if((rc = rf.append(key, value, rid)) < 0) {
+      fprintf(stderr, "Error appending data to table %s\n", table.c_str());
       break;
+    }
+
+    if(index && (rc = dbIndex.insert(key, rid)) < 0) {
+      fprintf(stderr, "Error inserting data to index for table %s\n", table.c_str());
+      break;
+    }
+
+    parseLine++;
   }
 
   try {
