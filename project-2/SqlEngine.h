@@ -67,6 +67,28 @@ class SqlEngine {
    * @return error code. 0 if no error
    */
   static RC parseLoadLine(const std::string& line, int& key, std::string& value);
+
+private:
+
+  /**
+   * Filters out conditions into two types: those that can be resolved
+   *    using only an index, and those that require reading the table itself
+   * @param conds[IN] the mixed conditions
+   * @param indexConds[OUT] conditions that can be resolved from the index only
+   * @param tableConds[OUT] conditions that require reading the table in order to resolve
+   * @return 0 on success, an error code otherwise
+   */
+  static RC processConditions(const std::vector<SelCond>& conds, std::vector<SelCond>& indexConds, std::vector<SelCond>& tableConds);
+
+  /**
+   * Determines if a key and value pair satisfy a given condition
+   * @param cond[IN] the condition to check against
+   * @param key[IN] the key to check
+   * @param value[IN] the value to check
+   * @param terminate[OUT] indicates a possible early termination (i.e. if this condition is applied to the index)
+   * @return true if the condition is matched, false otherwise
+   */
+  static bool matchesCondition(const SelCond& cond, const int key, const std::string& value, bool& terminate);
 };
 
 #endif /* SQLENGINE_H */

@@ -38,11 +38,24 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   RecordFile rf;   // RecordFile containing the table
   RecordId   rid;  // record cursor for table scanning
 
+  BTreeIndex  index;  // Handle to the table's index
+  IndexCursor cursor; // index cursor for table scanning
+
   RC     rc;
   int    key;     
   string value;
   int    count;
-  int    diff;
+
+  bool hasIndex   = true;
+  bool finishScan = false;
+
+  vector<SelCond> indexConds; // Conditions only on key, can get directly from index
+  vector<SelCond> tableConds; // Conditions on value, requires reading table
+
+  if((rc = processConditions(cond, indexConds, tableConds)) < 0) {
+    fprintf(stderr, "Error processing conditions");
+    return rc;
+  }
 
   // open the table file
   if ((rc = rf.open(table + ".tbl", 'r')) < 0) {
@@ -50,49 +63,81 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
     return rc;
   }
 
-  // scan the table file from the beginning
+  /**
+   * We do not need to consult the index in the following conditions:
+   *
+   * (1) select VALUE with no KEY constraints
+   * (2) count(*) with only VALUE constraints (no constraints means we can just count up the index entries)
+   * (3) select * with no KEY constraints
+   */
+  if(  (attr == 2 && indexConds.empty()                       ) // (1)
+    || (attr == 3 && indexConds.empty() && !tableConds.empty()) // (2)
+    || (attr == 4 &&                       !tableConds.empty()) // (3)
+  ) {
+    hasIndex = false;
+  }
+
+  // open the table index
+  if (hasIndex && (rc = index.open(table + ".idx", 'r')) < 0) {
+    hasIndex = false;
+  }
+
+  // no index, go directly to the table
+  if(!hasIndex) {
+    tableConds.insert(tableConds.begin(), indexConds.begin(), indexConds.end());
+    indexConds.clear();
+  }
+
+  // init the cursor at an appropriate position
   rid.pid = rid.sid = 0;
-  count = 0;
-  while (rid < rf.endRid()) {
-    // read the tuple
-    if ((rc = rf.read(rid, key, value)) < 0) {
-      fprintf(stderr, "Error: while reading a tuple from table %s\n", table.c_str());
-      goto exit_select;
+  if(hasIndex) {
+    if(indexConds.size() > 0) {
+      switch(indexConds[0].comp) {
+        case SelCond::EQ:
+        case SelCond::GT:
+        case SelCond::GE:
+          rc = index.locate(atoi(indexConds[0].value), cursor);
+          break;
+        case SelCond::LT:
+        case SelCond::LE:
+        case SelCond::NE:
+        default:
+          rc = index.locateFirstEntry(cursor);
+          break;
+      }
+    } else { // no KEY conditions
+      rc = index.locateFirstEntry(cursor);
     }
 
-    // check the conditions on the tuple
-    for (unsigned i = 0; i < cond.size(); i++) {
-      // compute the difference between the tuple value and the condition value
-      switch (cond[i].attr) {
-      case 1:
-	diff = key - atoi(cond[i].value);
-	break;
-      case 2:
-	diff = strcmp(value.c_str(), cond[i].value);
-	break;
-      }
+    // Fetch the first tuple from the index
+    if(rc < 0 || (rc = index.readForward(cursor, key, rid)) < 0) {
+      fprintf(stderr, "Error while reading from index for table %s\n", table.c_str());
+      goto exit_select;
+    }
+  }
 
-      // skip the tuple if any condition is not met
-      switch (cond[i].comp) {
-      case SelCond::EQ:
-	if (diff != 0) goto next_tuple;
-	break;
-      case SelCond::NE:
-	if (diff == 0) goto next_tuple;
-	break;
-      case SelCond::GT:
-	if (diff <= 0) goto next_tuple;
-	break;
-      case SelCond::LT:
-	if (diff >= 0) goto next_tuple;
-	break;
-      case SelCond::GE:
-	if (diff < 0) goto next_tuple;
-	break;
-      case SelCond::LE:
-	if (diff > 0) goto next_tuple;
-	break;
+  count = 0;
+  while (!finishScan) {
+    // check the index conditions on the tuple
+    value = "";
+    for(unsigned i = 0; i < indexConds.size(); i++) {
+      if(!matchesCondition(indexConds[i], key, value, finishScan))
+        goto next_tuple;
+    }
+
+    // grab the key value pair from the table if no index is available,
+    // or if we need to check or select on values
+    if(!hasIndex || !tableConds.empty() || (hasIndex && (attr == 2 || attr == 3))) {
+      if ((rc = rf.read(rid, key, value)) < 0) {
+        fprintf(stderr, "Error: while reading a tuple from table %s\n", table.c_str());
+        goto exit_select;
       }
+    }
+
+    // check the table conditions on the tuple
+    for (unsigned i = 0; i < tableConds.size(); i++) {
+      if(!matchesCondition(tableConds[i], key, value, finishScan))
+        goto next_tuple;
     }
 
     // the condition is met for the tuple. 
@@ -114,7 +159,21 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
 
     // move to the next tuple
     next_tuple:
-    ++rid;
+
+    if(hasIndex) {
+      // otherwise continue reading
+      rc = index.readForward(cursor, key, rid);
+
+      // exit on end of tree or unknown errors
+      if(rc == RC_END_OF_TREE) {
+        break;
+      } else if(rc < 0) {
+        fprintf(stderr, "Error while reading from index for table %s\n", table.c_str());
+        goto exit_select;
+      }
+    } else { // no index, read from table directly
+      finishScan = ++rid >= rf.endRid();
+    }
   }
 
   // print matching tuple count if "select count(*)"
@@ -126,6 +185,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   // close the table file and return
   exit_select:
   rf.close();
+  index.close();
   return rc;
 }
 
@@ -230,4 +290,65 @@ RC SqlEngine::parseLoadLine(const string& line, int& key, string& value)
     if (loc != string::npos) { value.erase(loc); }
 
     return 0;
+}
+
+/**
+ * Filters out conditions into two types: those that can be resolved
+ *    using only an index, and those that require reading the table itself
+ * @param conds[IN] the mixed conditions
+ * @param indexConds[OUT] conditions that can be resolved from the index only
+ * @param tableConds[OUT] conditions that require reading the table in order to resolve
+ * @return 0 on success, an error code otherwise
+ */
+RC SqlEngine::processConditions(const std::vector<SelCond>& conds, std::vector<SelCond>& indexConds, std::vector<SelCond>& tableConds) {
+  indexConds.clear();
+  tableConds.clear();
+
+  for(unsigned i = 0; i < conds.size(); i++) {
+    if(conds[i].attr == 1)
+      indexConds.push_back(conds[i]);
+    else
+      tableConds.push_back(conds[i]);
+  }
+
+  return 0;
+}
+
+/**
+ * Determines if a key and value pair satisfy a given condition
+ * @param cond[IN] the condition to check against
+ * @param key[IN] the key to check
+ * @param value[IN] the value to check
+ * @param terminate[OUT] indicates a possible early termination (i.e. if this condition is applied to the index)
+ * @return true if the condition is matched, false otherwise
+ */
+bool SqlEngine::matchesCondition(const SelCond &cond, const int key, const string& value, bool& terminate) {
+  int diff;
+  bool match = false;
+
+  terminate = false;
+
+  // compute the difference between the tuple value and the condition value
+  switch (cond.attr) {
+  case 1:
+    diff = key - atoi(cond.value);
+    break;
+  case 2: diff = strcmp(value.c_str(), cond.value);
+    break;
+  default:
+    return false;
+    break;
+  }
+
+  // skip the tuple if any condition is not met
+  switch (cond.comp) {
+    case SelCond::EQ: match = diff == 0; terminate = !match; break;
+    case SelCond::NE: match = diff != 0; terminate =  false; break;
+    case SelCond::GT: match = diff >  0; terminate =  false; break;
+    case SelCond::LT: match = diff <  0; terminate = !match; break;
+    case SelCond::GE: match = diff >= 0; terminate =  false; break;
+    case SelCond::LE: match = diff <= 0; terminate = !match; break;
+  }
+
+  return match;
 }
