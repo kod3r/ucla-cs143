@@ -97,7 +97,7 @@ RC BTLeafNode::locate(int searchKey, int& eid) const {
   int key;
   RecordId rid;
 
-  for(eid = 0; eid < data.getKeyCount(); eid++) {
+  for(eid = 0; (unsigned)eid < data.getKeyCount(); eid++) {
     data.getPair(eid, key, rid);
     if(key >= searchKey)
       return 0;
@@ -251,7 +251,7 @@ RC BTNonLeafNode::locateChildPtr(int searchKey, PageId& pid) const
   RC rc;
   int key;
 
-  for(int eid = 0; eid < data.getKeyCount(); eid++) {
+  for(unsigned eid = 0; eid < data.getKeyCount(); eid++) {
     // Bail on errors
     if((rc = data.getPair(eid, key, pid)) < 0)
       return rc;

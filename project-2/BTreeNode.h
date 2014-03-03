@@ -123,7 +123,7 @@ class BTRawNode {
      * @param v[OUT] retrieved value
      * @return 0 on success, RC_NO_SUCH_RECORD on out of bounds eid or uninitialized entry
      */
-    RC getPair(int eid, Key& k, Value& v) const {
+    RC getPair(unsigned eid, Key& k, Value& v) const {
       if(eid >= 0 && eid < MIN(pairCount, ARRAY_SIZE(keys))) {
         k = keys[eid];
         v = values[eid];
@@ -145,7 +145,7 @@ class BTRawNode {
      * Get number of valid keys inserted in node
      * @return entry count
      */
-    int getKeyCount() const {
+    unsigned getKeyCount() const {
       return pairCount;
     }
 
@@ -193,7 +193,7 @@ class BTRawNode {
         return RC_NODE_FULL;
 
       // Determine the proper location for this key
-      int new_key_index = indexForInsert(k);
+      unsigned new_key_index = indexForInsert(k);
 
       // Are we inserting at the end or in the middle of the node?
       // If the new location isn't right after the last pair, move the entires foward an index
@@ -309,7 +309,7 @@ class BTRawNode {
       if(index == 0)
        pairCount = ARRAY_SIZE(keys);
 
-      const int oldCount = pairCount;
+      const unsigned oldCount = pairCount;
 
       if(index < pairCount && index < ARRAY_SIZE(keys))
         pairCount = index;
@@ -317,7 +317,7 @@ class BTRawNode {
         return;
 
       nextPid = INVALID_PID;
-      for(int i = index; i < MIN(oldCount, ARRAY_SIZE(keys)); i++) {
+      for(unsigned i = index; i < MIN(oldCount, ARRAY_SIZE(keys)); i++) {
         keys[i] = INVALID_KEY;
       }
 
@@ -344,10 +344,10 @@ class BTRawNode {
      * @return the index where the key should be inserted. If this value is greater
      *         than ARRAY_SIZE(keys) the key should be inserted in a new node.
      */
-    int indexForInsert(const Key& key) const {
-      int lo = 0;
-      int hi = MIN(pairCount, ARRAY_SIZE(keys)) - 1;
-      int cur = lo;
+    unsigned indexForInsert(const Key& key) const {
+      unsigned lo = 0;
+      unsigned hi = MIN(pairCount, ARRAY_SIZE(keys)) - 1;
+      unsigned cur = lo;
 
       while(lo < hi) {
         if(key < keys[lo]) {
