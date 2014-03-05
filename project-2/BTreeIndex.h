@@ -13,10 +13,6 @@
 #include "Bruinbase.h"
 #include "PageFile.h"
 #include "RecordFile.h"
-
-// @todo: move this error definition to Bruinbase.h
-const int RC_INSERT_NEEDS_SPLIT  = -1016;
-const int RC_OUT_OF_MEMORY       = -1017;
              
 /**
  * The data structure to point to a particular entry at a b+tree leaf node.
