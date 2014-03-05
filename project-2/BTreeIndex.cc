@@ -79,13 +79,29 @@ RC BTreeIndex::insert(int key, const RecordId& rid)
 
   // The root node needs a split!
   const PageId  oldRootPid = pf.endPid();
-  BTRawNonLeaf  oldRoot; // Since we are only reading and writing back data, node leafness doesn't matter
+  BTRawNonLeaf  oldRoot;
   BTNonLeafNode newRoot;
 
   // First we save the old root elsewhere on disk,
   // so the new root can be saved as the first page
   if((rc = oldRoot.read(rootPid, pf)) < 0)
     return rc;
+
+  // If we have a previously leaf root which splits
+  // make sure that the sibling will point to the newly
+  // moved leaf instead of at the new (non-leaf) root!
+  if(oldRoot.isLeaf()) {
+    BTLeafNode sibling;
+    if((rc = sibling.read(siblingPid, pf)) < 0)
+      return rc;
+
+    if(sibling.getNextNodePtr() == rootPid) {
+      sibling.setNextNodePtr(oldRootPid);
+
+      if((rc = sibling.write(siblingPid, pf)) < 0)
+        return rc;
+    }
+  }
 
   if((rc = oldRoot.write(oldRootPid, pf)) < 0)
     return rc;
@@ -341,11 +357,11 @@ RC BTreeIndex::insertRecursively(const PageId& nodePid, const int key, const Rec
   // Copy the sibling key to avoid potential issues with using the value
   // from a non-const parameter passed by reference
   siblingKeyCopy = siblingFirstKey;
-  if((rc = nonLeaf->insertAndSplit(key, siblingKeyCopy, *nonLeafSibling, siblingFirstKey)) < 0) {
+  if((rc = nonLeaf->insertAndSplit(siblingKeyCopy, siblingPid, *nonLeafSibling, siblingFirstKey)) < 0) {
     goto exit;
   }
 
-  // Split successfull, save the node and its sibling
+  // Split successful, save the node and its sibling
   if((rc = nonLeaf->write(nodePid, pf)) < 0) {
     goto exit;
   }

@@ -82,7 +82,8 @@ RC BTLeafNode::insert(int key, const RecordId& rid)
 RC BTLeafNode::insertAndSplit(int key, const RecordId& rid, 
                               BTLeafNode& sibling, int& siblingKey)
 {
-  return data.insertPairAndSplit(key, rid, sibling.data, siblingKey);
+  RecordId placeHolder;
+  return data.insertPairAndSplit(key, rid, sibling.data, siblingKey, placeHolder);
 }
 
 /*
@@ -200,17 +201,35 @@ int BTNonLeafNode::getKeyCount() const {
  */
 RC BTNonLeafNode::insert(int key, PageId pid) { 
   RC rc;
+  int      oldKey;
+  PageId   origPid;
+  unsigned index;
 
-  // If the key is inserted in the middle no need to update nextPid
-  if(!data.willBeInsertedAtEnd(key))
-    return data.insertPair(key, pid);
+  // If the key is inserted at the end swap nextPid with pid to insert to keep the tree valid
+  if(data.willBeInsertedAtEnd(key)) {
+    if((rc = data.insertPair(key, data.getNextPid())) < 0)
+      return rc;
 
-  // Otherwise swap nextPid with pid to insert to keep the tree valid
-  if((rc = data.insertPair(key, data.getNextPid())) < 0)
+    data.setNextPid(pid);
+    return 0;
+  }
+
+  // Inserting into a nonLeaf node indicates a lower level split.
+  // To properly update the tree, we have to insert the first key of the sibling
+  // (i.e. the arg `key`) along with the pid of the original node (i.e. `origPid`),
+  // since all keys in the old node are now less than `key`. We have to update the
+  // held a pointer to the old node (i.e. a pair {`oldKey`, `origPid`}) so that it
+  // now points to the sibling pid (i.e. becomes {`oldKey`, `pid`}), since all the
+  // keys in the sibling are greater than or equal to `key` but less than `oldKey`.
+  index = data.indexForInsert(key);
+
+  if((rc = data.getPair(index, oldKey, origPid)) < 0)
     return rc;
 
-  data.setNextPid(pid);
-  return 0;
+  if((rc = data.updatePair(oldKey, pid)) < 0)
+    return rc;
+
+  return data.insertPair(key, origPid);
 }
 
 /*
@@ -227,16 +246,18 @@ RC BTNonLeafNode::insert(int key, PageId pid) {
 RC BTNonLeafNode::insertAndSplit(int key, PageId pid, BTNonLeafNode& sibling, int& midKey)
 {
   RC rc;
+  PageId midPid;
 
   // Make sure we properly update the nextPid if the new node will go at the end
-  if(!data.willBeInsertedAtEnd(key))
-    return data.insertPairAndSplit(key, pid, sibling.data, midKey);
+  if(data.willBeInsertedAtEnd(key)) {
+    rc = data.insertPairAndSplit(key, data.getNextPid(), sibling.data, midKey, midPid);
+    sibling.data.setNextPid(pid);
+  } else {
+    rc = data.insertPairAndSplit(key, pid, sibling.data, midKey, midPid);
+  }
 
-  if((rc = data.insertPairAndSplit(key, data.getNextPid(), sibling.data, midKey)) < 0)
-    return rc;
-
-  sibling.data.setNextPid(pid);
-  return 0;
+  this->data.setNextPid(midPid);
+  return rc;
 }
 
 /*

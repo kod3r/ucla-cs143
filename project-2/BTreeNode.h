@@ -176,8 +176,26 @@ class BTRawNode {
     }
 
     /**
+     * Update value for an existing key
+     * @param k[IN] the key to search
+     * @param v[IN] the new value to update
+     * @return 0 on success, an error code otherwise
+     */
+    RC updatePair(const Key& k, const Value& v) {
+      unsigned index = indexForInsert(k);
+
+      if(index > 0)
+        index--;
+
+      if(keys[index] != k)
+        return RC_NO_SUCH_RECORD;
+
+      values[index] = v;
+      return 0;
+    }
+
+    /**
      * Insert a new key value pair into the node
-     * @param eid[OUT] the index of the newly inserted pair
      * @param k[IN] the key to insert
      * @param v[IN] the value to insert
      * @return 0 on success, RC_NODE_FULL if no room left in node
@@ -227,12 +245,11 @@ class BTRawNode {
      * @param value The value of the item to insert
      * @param sibling The sibling to insert any overflow items into on split
      *        sibling must be different than *this. Behavior is undefined if sibling == *this
-     * @param siblingKey[OUT] The key of the first item in the sibling
+     * @param pivotKey[OUT] The key of the pivot element. Will be inserted into sibling for leaf nodes, but not for non-leaf nodes
+     * @param pivotValue[OUT] The value of the pivot element. Will be inserted into sibling for leaf nodes, but not for non-leaf nodes
      */
-    RC insertPairAndSplit(const Key& key, const Value& value, BTRawNode<Key, Value, INVALID_KEY>& sibling, Key& siblingKey) {
+    RC insertPairAndSplit(const Key& key, const Value& value, BTRawNode<Key, Value, INVALID_KEY>& sibling, Key& pivotKey, Value& pivotValue) {
       RC     rc;
-      PageId siblingPid;
-      Value  placeHolder;
 
       // Variables to hold the overflow pair
       Key   lastKey;
@@ -242,7 +259,7 @@ class BTRawNode {
       const int lastItem  = MIN(pairCount, ARRAY_SIZE(keys));
       const int pivot     = lastItem / 2;
       const int newItem   = indexForInsert(key);
-      const int numToMove = lastItem - pivot;
+      const int numToMove = lastItem - pivot - !this->isLeaf();
 
       // If the new value will NOT be the last value in the array
       // remove and save the last item, then insert the current value
@@ -266,9 +283,13 @@ class BTRawNode {
       sibling.clearAll();
       sibling.flags = this->flags;
 
+      // "Save" the pivot element
+      pivotKey   = keys[pivot];
+      pivotValue = values[pivot];
+
       // Split the nodes
-      memmove(sibling.keys,   this->keys   + pivot, numToMove*sizeof(Key)  );
-      memmove(sibling.values, this->values + pivot, numToMove*sizeof(Value));
+      memmove(sibling.keys,   this->keys   + pivot + !this->isLeaf(), numToMove*sizeof(Key)  );
+      memmove(sibling.values, this->values + pivot + !this->isLeaf(), numToMove*sizeof(Value));
 
       sibling.pairCount = numToMove;
 
@@ -279,10 +300,6 @@ class BTRawNode {
 
       sibling.setNextPid(this->getNextPid());
       this->invalidateStartingAtIndex(pivot);
-
-      if((rc = sibling.getPair(0, siblingKey, placeHolder)) < 0) {
-        return rc;
-      }
 
       return 0;
     }
@@ -336,7 +353,6 @@ class BTRawNode {
       return indexForInsert(key) == MIN(pairCount, ARRAY_SIZE(keys));
     }
 
-  protected:
     /**
      * Determine the index that a supposed new key would hold. This could return
      * a value larger than the keys array.
@@ -374,6 +390,7 @@ class BTRawNode {
       return cur;
     }
 
+  protected:
     /**
      * Resets pairCount based on the number of valid keys
      */
