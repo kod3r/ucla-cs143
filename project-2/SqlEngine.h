@@ -19,7 +19,7 @@
  */
 struct SelCond {
   int attr;     // attribute: 1 - key column,  2 - value column
-  enum Comparator { EQ, NE, LT, GT, LE, GE } comp;
+  enum Comparator { EQ = 0, GT, GE, LT, LE, NE, } comp; // ordered by "selectiveness"
   char* value;  // the value to compare
 };
 

@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include "Bruinbase.h"
 #include "SqlEngine.h"
 #include "BTreeIndex.h"
@@ -20,6 +21,37 @@ using namespace std;
 extern FILE* sqlin;
 int sqlparse(void);
 
+/**
+ * Comparator for sorting SelConds by ordering most selective conditions first
+ */
+bool operator < (const SelCond& lhs, const SelCond& rhs) {
+  int diff;
+
+  if(lhs.attr != rhs.attr)
+    return lhs.attr != 1;
+
+  if(lhs.comp != rhs.comp)
+    return lhs.comp < rhs.comp;
+
+  if(lhs.attr == 1)
+    diff = atoi(lhs.value) - atoi(rhs.value);
+  else
+    diff = strcmp(lhs.value, rhs.value);
+
+  switch(lhs.comp) {
+    case SelCond::EQ:
+    case SelCond::LT:
+    case SelCond::LE:
+      return diff < 0;
+
+    case SelCond::GT:
+    case SelCond::GE:
+    case SelCond::NE: // arbitrary comparison for NE conditions
+      return diff > 0;
+  }
+
+  return false;
+}
 
 RC SqlEngine::run(FILE* commandline)
 {
@@ -319,7 +351,7 @@ RC SqlEngine::parseLoadLine(const string& line, int& key, string& value)
  * @param tableConds[OUT] conditions that require reading the table in order to resolve
  * @return 0 on success, an error code otherwise
  */
-RC SqlEngine::processConditions(const std::vector<SelCond>& conds, std::vector<SelCond>& indexConds, std::vector<SelCond>& tableConds) {
+RC SqlEngine::processConditions(const vector<SelCond>& conds, vector<SelCond>& indexConds, vector<SelCond>& tableConds) {
   indexConds.clear();
   tableConds.clear();
 
@@ -329,6 +361,11 @@ RC SqlEngine::processConditions(const std::vector<SelCond>& conds, std::vector<S
     else
       tableConds.push_back(conds[i]);
   }
+
+  // Sort the conditions so the caller can init with the most
+  // selective condition, reading as few index pages as possible
+  sort(indexConds.begin(), indexConds.end());
+  sort(tableConds.begin(), tableConds.end());
 
   return 0;
 }
