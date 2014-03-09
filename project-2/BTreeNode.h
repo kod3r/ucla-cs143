@@ -411,18 +411,18 @@ class BTRawNode {
      * can fit inside a page. Since both leaf and non-leaf nodes will *always* have one PageId
      * we hard code this value within the structure (nextPid).
      */
-    static const unsigned DEGREE = PageFile::PAGE_SIZE / (2 * MAX(sizeof(int), MAX(sizeof(PageId), MAX(sizeof(Key), sizeof(Value)))));
+    static const unsigned DEGREE = (PageFile::PAGE_SIZE - sizeof(PageId) - sizeof(short) - sizeof(short)) / (sizeof(Key) + sizeof(Value));
 
     /**
      * Note: if we used an int for flags, it is possible to not need any padding
      * as the maximum page size will be word aligned. Since a zero sized array is forbidden
      * we make our flags use an short and always use a few padded bytes.
      */
-    Value   values[DEGREE - 1];
-    Key     keys[DEGREE - 1];
+    Value   values[DEGREE];
+    Key     keys[DEGREE];
 
-    //              Max structure size          sizeof(keys) + sizeof(values)           nextPid        pairCount         flags
-    char    padding[PageFile::PAGE_SIZE - (DEGREE-1)*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short) - sizeof(short)];
+    //              Max structure size        sizeof(keys) + sizeof(values)           nextPid        pairCount         flags
+    char    padding[PageFile::PAGE_SIZE - DEGREE*(sizeof(Key) + sizeof(Value)) - sizeof(PageId) - sizeof(short) - sizeof(short)];
 
     // Shared entries should always be after the padding so that
     // they are always aligned between different node types
