@@ -73,12 +73,13 @@ private:
   /**
    * Filters out conditions into two types: those that can be resolved
    *    using only an index, and those that require reading the table itself
+   * @param attr[IN] the type of select query being processed
    * @param conds[IN] the mixed conditions
    * @param indexConds[OUT] conditions that can be resolved from the index only
    * @param tableConds[OUT] conditions that require reading the table in order to resolve
    * @return 0 on success, an error code otherwise
    */
-  static RC processConditions(const std::vector<SelCond>& conds, std::vector<SelCond>& indexConds, std::vector<SelCond>& tableConds);
+  static RC processConditions(const int attr, const std::vector<SelCond>& conds, std::vector<SelCond>& indexConds, std::vector<SelCond>& tableConds);
 
   /**
    * Determines if a key and value pair satisfy a given condition

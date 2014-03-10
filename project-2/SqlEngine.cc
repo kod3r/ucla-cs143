@@ -84,7 +84,7 @@ RC SqlEngine::select(int attr, const string& table, const vector<SelCond>& cond)
   vector<SelCond> indexConds; // Conditions only on key, can get directly from index
   vector<SelCond> tableConds; // Conditions on value, requires reading table
 
-  if((rc = processConditions(cond, indexConds, tableConds)) < 0) {
+  if((rc = processConditions(attr, cond, indexConds, tableConds)) < 0) {
     fprintf(stderr, "Error processing conditions");
     return rc;
   }
@@ -346,20 +346,48 @@ RC SqlEngine::parseLoadLine(const string& line, int& key, string& value)
 /**
  * Filters out conditions into two types: those that can be resolved
  *    using only an index, and those that require reading the table itself
+ * @param attr[IN] the type of select query being processed
  * @param conds[IN] the mixed conditions
  * @param indexConds[OUT] conditions that can be resolved from the index only
  * @param tableConds[OUT] conditions that require reading the table in order to resolve
  * @return 0 on success, an error code otherwise
  */
-RC SqlEngine::processConditions(const vector<SelCond>& conds, vector<SelCond>& indexConds, vector<SelCond>& tableConds) {
+RC SqlEngine::processConditions(const int attr, const vector<SelCond>& conds, vector<SelCond>& indexConds, vector<SelCond>& tableConds) {
+  vector<SelCond> indexNEConds;
+
   indexConds.clear();
   tableConds.clear();
 
   for(unsigned i = 0; i < conds.size(); i++) {
-    if(conds[i].attr == 1)
-      indexConds.push_back(conds[i]);
-    else
+    if(conds[i].attr == 1) {
+      if(conds[i].comp == SelCond::NE) {
+        indexNEConds.push_back(conds[i]);
+      } else {
+        indexConds.push_back(conds[i]);
+      }
+    } else {
       tableConds.push_back(conds[i]);
+    }
+  }
+
+  /**
+   * If we are only reading keys (i.e. only need to read the index) and
+   * there are other (more selective) conditions on keys, it is okay to
+   * combine index NE conditions there as well. This will avoid reading
+   * the from the table itself as the index holds all the information we
+   * need. This also holds for the case when we are counting up all
+   * entries without any value constraints.
+   *
+   * Otherwise consider the index NE conditions as a part of the table scan
+   * Unless there is a large amount of NE conditions which creates a very
+   * exclusive set (which we will not check for anyway), only a few keys
+   * will be rejected, and it would be more efficient to just peform a full
+   * table scan, rather than scan the index as well.
+   */
+  if((attr == 1 && !indexConds.empty()) || (attr == 4 && tableConds.empty())) {
+    indexConds.insert(indexConds.end(), indexNEConds.begin(), indexNEConds.end());
+  } else {
+    tableConds.insert(tableConds.end(), indexNEConds.begin(), indexNEConds.end());
   }
 
   // Sort the conditions so the caller can init with the most
