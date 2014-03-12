@@ -19,3 +19,9 @@ Precursor to a movie database -- an exercise in establishing SQL constraints
 
 ### Project 1C
 A web interface for an actual movie database
+
+### Project 2
+A simple SQL database which can load data from a CSV, and select on it for given constraints.
+
+* SQL parsing and disk IO modules provided by the instructor.
+* Indexing, data loading, and data selection implemented by Ivan Petkov.
